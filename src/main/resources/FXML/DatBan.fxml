@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="800.0" prefWidth="1400.0" style="-fx-background-color: D9D9D9;" stylesheets="@../CSS/datban.css, @../CSS/AppMD.css" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.controllers.DatBanController">
+
+    <!-- Nội dung chính -->
+    <center>
+        <VBox spacing="20" styleClass="main-content" BorderPane.alignment="CENTER" VBox.vgrow="ALWAYS">
+            <padding>
+                <Insets bottom="20" left="20" right="20" top="20" />
+            </padding>
+
+            <VBox styleClass="center-p" VBox.vgrow="ALWAYS">
+                <children>
+                    <HBox alignment="CENTER" prefHeight="77.0" prefWidth="660.0" spacing="20" styleClass="time-form" HBox.hgrow="ALWAYS">
+                        <children>
+
+                            <!-- Cột chọn ngày -->
+                            <VBox alignment="CENTER_LEFT" spacing="6" style="-fx-alignment: center;" styleClass="time-field" HBox.hgrow="ALWAYS">
+                                <Label styleClass="field-label" text="Ngày đặt bàn" />
+                                <DatePicker fx:id="datePicker" promptText="Chọn ngày" styleClass="date-picker" />
+                            </VBox>
+
+                            <!-- Cột chọn giờ -->
+                            <VBox alignment="CENTER_LEFT" spacing="6" style="-fx-alignment: center;" styleClass="time-field" HBox.hgrow="ALWAYS">
+                                <Label styleClass="field-label" text="Giờ đặt" />
+                                <HBox alignment="CENTER" spacing="6" HBox.hgrow="ALWAYS">
+                                    <Spinner fx:id="hourSpinner" editable="true" max="23" min="0" prefHeight="36.0" styleClass="time-spinner" HBox.hgrow="ALWAYS" />
+                                    <Label styleClass="time-separator" text=":" />
+                                    <Spinner fx:id="minuteSpinner" editable="true" max="59" min="0" prefHeight="35.0" prefWidth="100.0" styleClass="time-spinner" HBox.hgrow="ALWAYS" />
+                                </HBox>
+                            </VBox>
+
+                            <!-- Cột số lượng -->
+                            <VBox alignment="CENTER_LEFT" spacing="6" style="-fx-alignment: center;" styleClass="time-field" HBox.hgrow="ALWAYS">
+                                <Label styleClass="field-label" text="Số lượng" />
+                                <TextField fx:id="noteField" maxWidth="150.0" promptText="số lượng" styleClass="filter-tf" HBox.hgrow="ALWAYS" />
+                            </VBox>
+
+                        </children>
+                    </HBox>
+
+                    <VBox prefHeight="703.0" prefWidth="660.0" style="-fx-padding: 10; -fx-spacing: 20;" VBox.vgrow="ALWAYS">
+                        <children>
+
+                            <!-- OUT -->
+                            <HBox prefHeight="100.0" prefWidth="200.0" styleClass="table_group" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <VBox prefHeight="200.0" prefWidth="100.0" styleClass="table_title" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/out.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label prefHeight="54.0" prefWidth="63.0" text="OUT" />
+                                        </children>
+                                    </VBox>
+                                    <VBox fx:id="tableOut_01" layoutX="20.0" layoutY="20.0" prefHeight="200.0" prefWidth="100.0" styleClass="table_items" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/out.png" />
+                                                </image>
+                                            </ImageView>
+                                            <ImageView fx:id="starOut_01" fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/icon/starwhite.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label text="1-2" />
+                                        </children>
+                                    </VBox>
+                                    <VBox fx:id="tableOut_02" layoutX="340.0" layoutY="20.0" prefHeight="200.0" prefWidth="100.0" styleClass="table_items" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/out.png" />
+                                                </image>
+                                            </ImageView>
+                                            <ImageView fx:id="starOut_02" fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/icon/starwhite.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label text="3-4" />
+                                        </children>
+                                    </VBox>
+                                    <VBox fx:id="tableOut_03" layoutX="400.0" layoutY="20.0" prefHeight="200.0" prefWidth="100.0" styleClass="table_items" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/out.png" />
+                                                </image>
+                                            </ImageView>
+                                            <ImageView fx:id="starOut_03" fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/icon/starwhite.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label text="5-8" />
+                                        </children>
+                                    </VBox>
+                                    <VBox fx:id="tableOut_04" layoutX="460.0" layoutY="20.0" prefHeight="200.0" prefWidth="100.0" styleClass="table_items" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/out.png" />
+                                                </image>
+                                            </ImageView>
+                                            <ImageView fx:id="starOut_04" fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/icon/starwhite.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label text="8-12" />
+                                        </children>
+                                    </VBox>
+                                </children>
+                            </HBox>
+
+                            <!-- IN -->
+                            <HBox layoutX="20.0" layoutY="20.0" prefHeight="100.0" prefWidth="200.0" styleClass="table_group" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <VBox prefHeight="200.0" prefWidth="100.0" styleClass="table_title" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/IN.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label prefHeight="54.0" prefWidth="63.0" text="IN" />
+                                        </children>
+                                    </VBox>
+                                    <VBox fx:id="tableIN_01" layoutX="20.0" layoutY="20.0" prefHeight="200.0" prefWidth="100.0" styleClass="table_items" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/IN.png" />
+                                                </image>
+                                            </ImageView>
+                                            <ImageView fx:id="starIN_01" fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/icon/starwhite.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label text="1-2" />
+                                        </children>
+                                    </VBox>
+                                    <VBox fx:id="tableIN_02" layoutX="340.0" layoutY="20.0" prefHeight="200.0" prefWidth="100.0" styleClass="table_items" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/IN.png" />
+                                                </image>
+                                            </ImageView>
+                                            <ImageView fx:id="starIN_02" fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/icon/starwhite.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label text="3-4" />
+                                        </children>
+                                    </VBox>
+                                    <VBox fx:id="tableIN_03" layoutX="400.0" layoutY="20.0" prefHeight="200.0" prefWidth="100.0" styleClass="table_items" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/IN.png" />
+                                                </image>
+                                            </ImageView>
+                                            <ImageView fx:id="starIN_03" fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/icon/starwhite.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label text="5-8" />
+                                        </children>
+                                    </VBox>
+                                    <VBox fx:id="tableIN_04" layoutX="460.0" layoutY="20.0" prefHeight="200.0" prefWidth="100.0" styleClass="table_items" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/IN.png" />
+                                                </image>
+                                            </ImageView>
+                                            <ImageView fx:id="starIN_04" fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/icon/starwhite.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label text="8-12" />
+                                        </children>
+                                    </VBox>
+                                </children>
+                            </HBox>
+
+                            <!-- VIP -->
+                            <HBox layoutX="20.0" layoutY="369.0" prefHeight="100.0" prefWidth="200.0" styleClass="table_group" HBox.hgrow="ALWAYS">
+                                <children>
+                                    <VBox prefHeight="200.0" prefWidth="100.0" styleClass="table_title" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/vip.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label prefHeight="54.0" prefWidth="63.0" text="VIP" />
+                                        </children>
+                                    </VBox>
+                                    <VBox fx:id="tableVIP_01" layoutX="400.0" layoutY="20.0" prefHeight="200.0" prefWidth="100.0" styleClass="table_items" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/vip.png" />
+                                                </image>
+                                            </ImageView>
+                                            <ImageView fx:id="starVIP_01" fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/icon/starwhite.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label text="12-20" />
+                                        </children>
+                                    </VBox>
+                                    <VBox fx:id="tableVIP_02" layoutX="400.0" layoutY="20.0" prefHeight="200.0" prefWidth="100.0" styleClass="table_items" VBox.vgrow="ALWAYS">
+                                        <children>
+                                            <ImageView fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/ban/vip.png" />
+                                                </image>
+                                            </ImageView>
+                                            <ImageView fx:id="starVIP_02" fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                                                <image>
+                                                    <Image url="@../IMG/icon/starwhite.png" />
+                                                </image>
+                                            </ImageView>
+                                            <Label text="&gt;12-25" />
+                                        </children>
+                                    </VBox>
+                                </children>
+                            </HBox>
+
+                        </children>
+                    </VBox>
+                </children>
+            </VBox>
+        </VBox>
+    </center>
+
+    <!-- Sidebar phải -->
+    <right>
+        <VBox spacing="20" styleClass="right-sidebar" BorderPane.alignment="CENTER" VBox.vgrow="ALWAYS">
+            <VBox.vgrow>ALWAYS</VBox.vgrow>
+            <padding>
+                <Insets bottom="20" left="20" right="20" top="20" />
+            </padding>
+
+            <Label minHeight="40.0" minWidth="350.0" styleClass="section-title" text="Thông Tin Đặt Bàn" textAlignment="CENTER" />
+         <GridPane vgap="10.0">
+           <columnConstraints>
+             <ColumnConstraints hgrow="SOMETIMES" maxWidth="149.0" minWidth="10.0" prefWidth="119.0" />
+             <ColumnConstraints hgrow="SOMETIMES" maxWidth="191.0" minWidth="10.0" prefWidth="191.0" />
+           </columnConstraints>
+           <rowConstraints>
+             <RowConstraints />
+             <RowConstraints />
+             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+               <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+               <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+               <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+           </rowConstraints>
+            <children>
+                    <Label prefHeight="18.0" prefWidth="131.0" styleClass="info-label" text="Họ và tên:" GridPane.rowIndex="1" />
+                    <TextField fx:id="txtTenKH" prefHeight="19.0" prefWidth="230.0" promptText="Nhập họ tên" styleClass="filter-tf" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                    <Label styleClass="info-label" text="SĐT:" GridPane.rowIndex="2" />
+                    <TextField fx:id="txtSDT" prefHeight="24.0" prefWidth="228.0" promptText="Nhập số điện thoại" styleClass="filter-tf" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                    <Label styleClass="info-label" text="Khu vực:" GridPane.rowIndex="3" />
+                    <ComboBox fx:id="cboKhuVuc" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                    <Label styleClass="info-label" text="Số lượng khách:" GridPane.rowIndex="4" />
+                    <TextField fx:id="txtSoLuong" prefHeight="24.0" prefWidth="228.0" promptText="Số người" styleClass="filter-tf" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                    <Label styleClass="info-label" text="Ghi chú:" GridPane.rowIndex="5" />
+                    <TextField fx:id="txtGhiChu" prefHeight="24.0" prefWidth="228.0" promptText="Ghi chú đặc biệt" styleClass="filter-tf" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+            </children>
+         </GridPane>
+
+            <AnchorPane prefHeight="452.0" prefWidth="340.0" VBox.vgrow="ALWAYS">
+                <children>
+                    <Button fx:id="btnWaitlist" layoutX="85.0" layoutY="240.0" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #E6763E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10;" text="Đợi Bàn" textAlignment="CENTER" visible="false" AnchorPane.leftAnchor="85.0" AnchorPane.rightAnchor="85.0" />
+                </children>
+            </AnchorPane>
+        </VBox>
+    </right>
+</BorderPane>

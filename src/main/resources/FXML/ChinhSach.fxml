@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="800" prefWidth="1400" styleClass="root-pane" stylesheets="@../CSS/chinhsach.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.controllers.ChinhSachController">
+
+
+    <!-- Main content -->
+    <center>
+        <VBox spacing="16" styleClass="main-content">
+            <padding>
+                <Insets bottom="20" left="20" right="20" top="20" />
+            </padding>
+
+            <!-- Cài đặt thời gian đợi bàn -->
+            <HBox spacing="20" styleClass="section-card">
+                <VBox alignment="CENTER" prefHeight="127.0" prefWidth="1053.0" spacing="10" styleClass="setting-block">
+                    <Label prefHeight="50.0" prefWidth="1040.0" styleClass="section-title" text="Cài Đặt Thời Gian Đợi Bàn" />
+                    <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="20" styleClass="main_card">
+                        <children>
+                            <HBox alignment="CENTER" prefHeight="77.0" prefWidth="453.0" spacing="15" styleClass="time-card">
+                                <Label styleClass="txt-tt" text="Bàn Đặt Trước:" />
+                                <TextField fx:id="txtBanDatTruoc" onAction="#xacNhanBanDatTruoc" styleClass="input-field" text="15" />
+                                <Button fx:id="btnXacNhanBanDatTruoc" onAction="#xacNhanBanDatTruoc" styleClass="btn-primary" text="Xác Nhận" />
+                            </HBox>
+                            <HBox alignment="CENTER" prefWidth="420.0" spacing="15" styleClass="time-card">
+                                <Label styleClass="txt-tt" text="Bàn Đợi:" />
+                                <TextField fx:id="txtBanDoi" onAction="#xacNhanBanDoi" styleClass="input-field" text="5" />
+                                <Button fx:id="btnXacNhanBanDoi" onAction="#xacNhanBanDoi" styleClass="btn-primary" text="Xác Nhận" />
+                            </HBox>
+                        </children>
+                    </HBox>
+                </VBox>
+            </HBox>
+
+            <!-- Cọc bàn -->
+            <HBox prefHeight="238.0" prefWidth="1040.0" spacing="20" styleClass="section-card">
+                <VBox alignment="CENTER" prefHeight="178.0" prefWidth="1040.0" spacing="10" styleClass="setting-block">
+                    <Label prefHeight="50.0" prefWidth="1040.0" styleClass="section-title" text="Cọc Bàn" />
+                    <HBox prefHeight="186.0" prefWidth="1040.0" styleClass="main_card">
+                        <children>
+                            <AnchorPane prefHeight="100.0" prefWidth="12.0" />
+                            <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="352.0" spacing="10">
+                                <children>
+                                    <ScrollPane fx:id="scrollCoc" prefHeight="174.0" prefWidth="334.0" styleClass="scroll-bar">
+                                        <content>
+                                            <VBox fx:id="vboxCocList" prefHeight="170.0" prefWidth="330.0" spacing="10" style="-fx-padding: 15;">
+                                                <!-- Các HBox sẽ được load bằng code -->
+                                            </VBox>
+                                        </content>
+                                    </ScrollPane>
+
+                                </children>
+                            </HBox>
+
+                            <!-- Nhập cọc -->
+                            <GridPane hgap="10" prefHeight="174.0" prefWidth="681.0" styleClass="grid_pa" vgap="8">
+
+                            <columnConstraints>
+                                <ColumnConstraints percentWidth="17.0" />
+                                <ColumnConstraints percentWidth="33.0" />
+                                <ColumnConstraints percentWidth="16.0" />
+                                <ColumnConstraints percentWidth="34.0" />
+                            </columnConstraints>
+
+                            <!-- Khu vực -->
+                            <Label text="Khu vực:" GridPane.columnIndex="0" />
+                            <ComboBox fx:id="cbKhuVuc"
+                                    prefHeight="25.0" prefWidth="92.0"
+                                    style="-fx-background-color: #f8f8f8; -fx-background-radius: 8;"
+                                    styleClass="combo-box"
+                                    GridPane.columnIndex="1" />
+
+                            <!-- Loại bàn -->
+                            <Label text="Loại bàn:" GridPane.columnIndex="2" />
+                            <ComboBox fx:id="cbLoaiBan"
+                                    prefHeight="25.0" prefWidth="116.0"
+                                    style="-fx-background-color: white; -fx-background-radius: 8;"
+                                    styleClass="combo-box"
+                                    GridPane.columnIndex="3" />
+
+                            <!-- Loại cọc -->
+                            <Label text="Loại cọc:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+
+                            <HBox alignment="CENTER_LEFT" spacing="12"
+                                GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                <children>
+                                    <RadioButton fx:id="rbPhanTram" selected="true" text="Phần Trăm" />
+                                    <RadioButton fx:id="rbTien" text="Tiền" />
+                                </children>
+                            </HBox>
+
+                            <!-- Giá trị -->
+                            <Label text="Giá trị:" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                            <TextField fx:id="txtGiaTriCoc"
+                                    styleClass="input-field"
+                                    GridPane.columnIndex="3" GridPane.rowIndex="1" />
+
+                            <!-- Xóa trắng (Hàng 2, Cột 2) -->
+                            <Button fx:id="btnXoaTrang"
+                                    onAction="#xoaTrang"
+                                    prefHeight="30.0" prefWidth="140.0"
+                                    styleClass="btn-secondary"
+                                    text="Xóa trắng"
+                                    GridPane.columnIndex="2" GridPane.rowIndex="2" />
+
+                            <!-- HBox chứa Xóa + Thêm/Xác nhận (Hàng 2, Cột 3) -->
+                            <HBox spacing="15"
+                                alignment="CENTER_RIGHT"
+                                GridPane.columnIndex="3" GridPane.rowIndex="2">
+
+                                <children>
+
+                                    <Button fx:id="btnXoa"
+                                            onAction="#xoaCoc"
+                                            prefHeight="30.0" prefWidth="120.0"
+                                            styleClass="btn-danger"
+                                            text="Xóa" />
+
+                                    <Button fx:id="btnXacNhanCoc"
+                                            onAction="#xacNhan"
+                                            prefHeight="30.0" prefWidth="140.0"
+                                            styleClass="btn-primary"
+                                            text="Xác nhận" />
+
+                                </children>
+                            </HBox>
+
+                            <rowConstraints>
+                                <RowConstraints />
+                                <RowConstraints />
+                                <RowConstraints />
+                            </rowConstraints>
+
+                        </GridPane>
+
+
+
+                        </children>
+                    </HBox>
+                </VBox>
+            </HBox>
+
+            <!-- Phần trăm lời cho món -->
+            <HBox prefHeight="365.0" prefWidth="1040.0" spacing="20" styleClass="section-card">
+                <VBox alignment="CENTER" prefHeight="133.0" prefWidth="1051.0" spacing="10" styleClass="setting-block">
+                    <Label prefHeight="51.0" prefWidth="1040.0" styleClass="section-title" text="Phần Trăm Lời Cho Món" />
+                    <HBox prefHeight="324.0" prefWidth="1040.0" styleClass="main_card">
+                        <children>
+                            <VBox spacing="10" styleClass="food-search-box">
+
+                                <!-- Thanh tìm kiếm -->
+                                <HBox alignment="CENTER_LEFT" spacing="10" styleClass="search-bar">
+                                    <Button styleClass="menu-btn" text="≡" />
+                                    <TextField fx:id="txtSearch" prefHeight="32.0" prefWidth="142.0" promptText="Tìm món ăn" styleClass="search-field" HBox.hgrow="ALWAYS" />
+                                    <Button prefWidth="49.0" styleClass="search-btn" text="🔍"/>
+                                </HBox>
+
+                                <!-- Danh sách khuyến mãi -->
+                                <ScrollPane fitToWidth="true" prefHeight="400" styleClass="food-scroll">
+                                    <FlowPane fx:id="foodList" alignment="TOP_CENTER" hgap="20" prefHeight="168.0" prefWidth="290.0" prefWrapLength="400" style="-fx-background-color: white;" vgap="20">
+
+                                    </FlowPane>
+                                </ScrollPane>
+                            </VBox>
+                            <AnchorPane prefHeight="367.0" prefWidth="7.0" />
+
+                            <!-- Form tính lời -->
+                            <GridPane hgap="10" prefHeight="367.0" prefWidth="675.0" styleClass="grid_pa" vgap="8">
+                                <columnConstraints>
+                                    <ColumnConstraints percentWidth="20" />
+                                    <ColumnConstraints percentWidth="30" />
+                                    <ColumnConstraints percentWidth="20" />
+                                    <ColumnConstraints percentWidth="30" />
+                                </columnConstraints>
+                                <Button prefWidth="164.0" text="Xóa trắng" styleClass="btn-secondary" onAction="#resetFields" GridPane.columnIndex="2" GridPane.rowIndex="4"/>
+
+                                <Button prefWidth="164.0" styleClass="btn-primary" text="Xác Nhận" GridPane.columnIndex="3" GridPane.rowIndex="4" onAction="#xacNhanPhanTramLoi"/>
+
+                                <Label text="Loại:" GridPane.rowIndex="1" />
+
+                                <ComboBox fx:id="cbLoaiMon" prefHeight="25.0" prefWidth="219.0" style="-fx-background-color: #f8f8f8; -fx-background-radius: 8;" styleClass="combo-box" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+
+                                <Label text="Tên:" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                                <TextField styleClass="input-field" GridPane.columnIndex="3" GridPane.rowIndex="1" fx:id="txtTen"/>
+
+                                <Label text="Tăng %:" GridPane.rowIndex="2" />
+                                <TextField styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="2" fx:id="txtTangPhanTram"/>
+
+                                <Label text="Giá Gốc:" GridPane.columnIndex="2" GridPane.rowIndex="2" />
+                                <TextField styleClass="input-field" GridPane.columnIndex="3" GridPane.rowIndex="2" fx:id="txtGiaGoc"/>
+
+                                <Label text="Giá Lời:" GridPane.rowIndex="3" />
+                                <TextField styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="3" fx:id="txtGiaTriLoi"/>
+
+                                <Label text="Giá Bán:" GridPane.columnIndex="2" GridPane.rowIndex="3" />
+                                <TextField styleClass="input-field" GridPane.columnIndex="3" GridPane.rowIndex="3" fx:id="txtGiaBan"/>
+                                <AnchorPane prefHeight="29.0" prefWidth="125.0" />
+                                <rowConstraints>
+                                    <RowConstraints />
+                                    <RowConstraints />
+                                    <RowConstraints />
+                                    <RowConstraints />
+                                    <RowConstraints />
+                                </rowConstraints>
+                            </GridPane>
+                        </children>
+                    </HBox>
+                </VBox>
+            </HBox>
+        </VBox>
+    </center>
+</BorderPane>

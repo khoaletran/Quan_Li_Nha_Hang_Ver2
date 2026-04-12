@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.paint.ImagePattern?>
+<?import javafx.scene.shape.Circle?>
+
+<BorderPane prefWidth="320" styleClass="sidebar" stylesheets="@../CSS/sidebar.css" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.controllers.SidebarController_NV">
+
+    <!-- ================= PHẦN TRÊN (Avatar + Tên NV) ================= -->
+    <top>
+        <VBox prefHeight="167.0" prefWidth="320.0" spacing="10">
+            <HBox alignment="CENTER" spacing="15" styleClass="avatar_section">
+                <children>
+                    <StackPane alignment="CENTER">
+                        <ImageView fx:id="avatarImage" fitHeight="110" fitWidth="110"/>
+                    </StackPane>
+                    <VBox alignment="CENTER_LEFT" spacing="5">
+                        <Label fx:id="lblTenNV" styleClass="username" text="Tên nhân viên" />
+                        <Label fx:id="lblChucVu" styleClass="role" text="Chức vụ" />
+                    </VBox>
+                </children>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- ================= PHẦN MENU ================= -->
+    <center>
+        <VBox fx:id="menuContainer" alignment="TOP_CENTER" spacing="8" style="-fx-spacing: 10; -fx-padding: 10;">
+
+            <!-- DASHBOARD -->
+            <Button fx:id="btnDashboard" onAction="#handleMenuAction" styleClass="menu-item" text="  🏠  DASHBOARD" />
+
+            <!-- QUẢN LÍ ĐẶT BÀN -->
+            <Button fx:id="btnQuanLiDatBan" onAction="#toggleSubMenu" styleClass="menu-item" text="  🍽  QUẢN LÍ ĐẶT BÀN" />
+
+            <!-- SUBMENU: CÁC CHỨC NĂNG CON -->
+            <VBox fx:id="subMenuDatBan" alignment="CENTER" managed="false" prefWidth="274.0" spacing="5" visible="false">
+
+                <Button fx:id="btnDatBan" onAction="#handleMenuAction" styleClass="sub-btn" text="Đặt Bàn">
+                    <graphic>
+                        <ImageView fitHeight="20" fitWidth="20" preserveRatio="true">
+                            <image>
+                                <Image url="@../IMG/icon/bill.png" />
+                            </image>
+                        </ImageView>
+                    </graphic>
+                </Button>
+
+                <Button fx:id="btnCheckIn" onAction="#handleMenuAction" styleClass="sub-btn" text="Check In">
+                    <graphic>
+                        <ImageView fitHeight="20" fitWidth="20" preserveRatio="true">
+                            <image>
+                                <Image url="@../IMG/icon/checkmark.png" />
+                            </image>
+                        </ImageView>
+                    </graphic>
+                </Button>
+
+                <Button fx:id="btnCheckOut" onAction="#handleMenuAction" styleClass="sub-btn" text="Check Out">
+                    <graphic>
+                        <ImageView fitHeight="20" fitWidth="20" preserveRatio="true">
+                            <image>
+                                <Image url="@../IMG/icon/checkout.png" />
+                            </image>
+                        </ImageView>
+                    </graphic>
+                </Button>
+
+                <Button fx:id="btnCapNhatDonBan" onAction="#handleMenuAction" styleClass="sub-btn" text="Cập Nhật Đơn Bàn">
+                    <graphic>
+                        <ImageView fitHeight="20" fitWidth="20" preserveRatio="true">
+                            <image>
+                                <Image url="@../IMG/icon/chair.png" />
+                            </image>
+                        </ImageView>
+                    </graphic>
+                </Button>
+            </VBox>
+
+            <!-- CÁC MỤC KHÁC -->
+            <Button fx:id="btnQuanLiThanhVien" onAction="#handleMenuAction" styleClass="menu-item" text="  👥  QUẢN LÍ THÀNH VIÊN" />
+            <Button fx:id="btnTraCuu" onAction="#handleMenuAction" styleClass="menu-item" text="  🔍  TRA CỨU HÓA ĐƠN" />
+            <Button fx:id="btnHoTro" onAction="#handleMenuAction" styleClass="menu-item" text="  💬  HỖ TRỢ" />
+        </VBox>
+    </center>
+
+
+    <bottom>
+        <VBox alignment="CENTER" prefHeight="80.0" prefWidth="276.0" style="-fx-padding: 15 0 20 0;">
+            <Button fx:id="btnKetCa" onAction="#handleMenuAction" prefWidth="185" styleClass="logout-btn" text="Kết Ca" />
+        </VBox>
+    </bottom>
+
+</BorderPane>

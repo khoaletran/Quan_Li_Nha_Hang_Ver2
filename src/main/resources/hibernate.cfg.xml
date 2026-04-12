@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+
+        <!-- ============================================================= -->
+        <!--  MariaDB Connection                                            -->
+        <!-- ============================================================= -->
+        <property name="hibernate.connection.driver_class">org.mariadb.jdbc.Driver</property>
+        <property name="hibernate.connection.url">
+            jdbc:mariadb://localhost:3306/QLNH_Ver2?createDatabaseIfNotExist=true&amp;useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=Asia/Ho_Chi_Minh
+        </property>
+        <property name="hibernate.connection.username">root</property>
+        <property name="hibernate.connection.password">280405</property>
+
+        <!-- ============================================================= -->
+        <!--  Hibernate Settings                                            -->
+        <!-- ============================================================= -->
+        <property name="hibernate.dialect">org.hibernate.dialect.MariaDBDialect</property>
+        <!-- update = auto-create/update tables from entities (dev mode)    -->
+        <!-- none   = production mode, never touch schema                   -->
+        <property name="hibernate.hbm2ddl.auto">update</property>
+        <property name="hibernate.show_sql">true</property>
+        <property name="hibernate.format_sql">false</property>
+        <property name="hibernate.use_sql_comments">false</property>
+
+        <!-- Connection pool (built-in C3P0 for dev; switch to HikariCP for prod) -->
+        <property name="hibernate.connection.pool_size">10</property>
+
+        <!-- ============================================================= -->
+        <!--  Entity Mappings (all 17 core entities)                        -->
+        <!-- ============================================================= -->
+        <mapping class="core.entity.HangKhachHang"/>
+        <mapping class="core.entity.LoaiMon"/>
+        <mapping class="core.entity.LoaiBan"/>
+        <mapping class="core.entity.KhuVuc"/>
+        <mapping class="core.entity.SuKien"/>
+        <mapping class="core.entity.ThoiGianDoiBan"/>
+        <mapping class="core.entity.NhanVien"/>
+        <mapping class="core.entity.KhachHang"/>
+        <mapping class="core.entity.Mon"/>
+        <mapping class="core.entity.Ban"/>
+        <mapping class="core.entity.PhanTramGiaBan"/>
+        <mapping class="core.entity.Coc"/>
+        <mapping class="core.entity.KhuyenMai"/>
+        <mapping class="core.entity.PhieuKetCa"/>
+        <mapping class="core.entity.HoaDon"/>
+        <mapping class="core.entity.ChiTietHoaDonId"/>
+        <mapping class="core.entity.ChiTietHoaDon"/>
+
+    </session-factory>
+</hibernate-configuration>

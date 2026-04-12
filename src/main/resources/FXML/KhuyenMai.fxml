@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="root" prefHeight="800.0" prefWidth="1400.0" styleClass="borderPane_main" stylesheets="@../CSS/khuyenmai.css" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.controllers.KhuyenMaiController">
+
+    <!-- ========== TRUNG TÂM (Danh sách & bộ lọc) ========== -->
+    <center>
+        <VBox spacing="10" styleClass="center-section">
+            <padding>
+                <Insets bottom="10" left="10" right="10" top="10" />
+            </padding>
+
+            <!-- DANH SÁCH KHUYẾN MÃI -->
+            <VBox prefHeight="612.0" prefWidth="624.0" style="-fx-background-color: #efefef; -fx-background-radius: 20 28 20 28;">
+                <children>
+                    <HBox prefHeight="55.0" prefWidth="624.0" styleClass="tt_box">
+                        <children>
+                            <Label prefHeight="37.0" prefWidth="1043.0" styleClass="center-title" text="Danh sách khuyến mãi" />
+                        </children>
+                    </HBox>
+
+                    <ScrollPane fx:id="scrollList" fitToWidth="true" prefHeight="547.0" prefWidth="612.0" styleClass="scroll-list" VBox.vgrow="ALWAYS">
+                        <content>
+                            <VBox fx:id="vboxCenterScroll" prefHeight="510.0" prefWidth="614.0" spacing="8" styleClass="vbox_center-scroll" />
+                        </content>
+                    </ScrollPane>
+                </children>
+            </VBox>
+
+            <!-- BỘ LỌC -->
+            <VBox prefHeight="162.0" prefWidth="624.0" spacing="8" styleClass="filter-box">
+                <HBox prefHeight="100.0" prefWidth="200.0" style="-fx-background-color: white; -fx-background-radius: 20 20 28 28;">
+                    <children>
+                        <Label prefHeight="0.0" prefWidth="1014.0" styleClass="filter-title" text="Bộ lọc" />
+                    </children>
+                </HBox>
+
+                <GridPane hgap="10" prefHeight="98.0" prefWidth="614.0" style="-fx-padding: 10;" styleClass="grib-filter" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="31.0" />
+                        <ColumnConstraints percentWidth="67.0" />
+                        <ColumnConstraints percentWidth="2.0" />
+                    </columnConstraints>
+
+                    <!-- Hàng 1 -->
+                    <Label styleClass="label_filter" text="Mã KM:" GridPane.columnIndex="0" />
+                    <TextField fx:id="txtTimKiem" promptText="Nhập mã KM" styleClass="filter-tf" GridPane.columnIndex="1" />
+
+                    <!-- Hàng 2 -->
+                    <Label styleClass="label_filter" text="Trạng thái:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                    <ComboBox fx:id="cbTrangThai" promptText="-- chọn --" styleClass="filter-tf" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                    <!-- Hàng 3 -->
+                    <Label styleClass="label_filter" text="Ưu đãi:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                    <ComboBox fx:id="cbUuDaiTimKiem" promptText="-- chọn --" styleClass="uudai_combobox filter-tf" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+               <rowConstraints>
+                  <RowConstraints />
+                  <RowConstraints />
+                  <RowConstraints />
+               </rowConstraints>
+                </GridPane>
+
+                <!-- Nút tìm kiếm -->
+                <HBox alignment="CENTER" spacing="10" style="-fx-padding: 10;">
+                    <Button fx:id="btnXoaTrang" styleClass="btn-clear" text="Xóa trắng" />
+                    <Button fx:id="btnTimKiem" styleClass="btn-search" text="Tìm kiếm" />
+                </HBox>
+            </VBox>
+        </VBox>
+    </center>
+
+    <!-- ========== PHẢI (Form khuyến mãi + chọn món) ========== -->
+    <right>
+        <VBox prefWidth="360" spacing="15" styleClass="right-section">
+            <padding><Insets bottom="20" left="20" right="20" top="20" /></padding>
+
+            <!-- FORM THÔNG TIN KHUYẾN MÃI -->
+            <VBox prefHeight="700.0" prefWidth="396.0" spacing="15" styleClass="right-content">
+                <AnchorPane prefHeight="39.0" prefWidth="403.0">
+                    <children>
+                        <Label prefHeight="39.0" prefWidth="356.0" styleClass="section-title" text="Thông Tin Khuyến Mãi" />
+                    </children>
+                </AnchorPane>
+
+                <GridPane hgap="10" prefHeight="311.0" prefWidth="356.0" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="40" />
+                        <ColumnConstraints percentWidth="60" />
+                    </columnConstraints>
+
+                    <Label styleClass="label_infoOrder" text="Mã Khuyến Mãi:" GridPane.rowIndex="0" />
+                    <TextField fx:id="txtMaKM" promptText="KM0001" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                    <Label styleClass="label_infoOrder" text="Tên Khuyến Mãi:" GridPane.rowIndex="1" />
+                    <TextField fx:id="txtTenKM" promptText="Khuyến Mãi Sinh Nhật" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                    <Label styleClass="label_infoOrder" text="Số lượng:" GridPane.rowIndex="2" />
+                    <TextField fx:id="txtSoLuong" promptText="1000" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                    <Label styleClass="label_infoOrder" text="Ngày bắt đầu:" GridPane.rowIndex="3" />
+                    <DatePicker fx:id="dpNgayBatDau" promptText="dd-MM-yyyy" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                    <Label styleClass="label_infoOrder" text="Ngày kết thúc:" GridPane.rowIndex="4" />
+                    <DatePicker fx:id="dpNgayKetThuc" promptText="dd-MM-yyyy" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+                    <Label styleClass="label_infoOrder" text="Mã thay thế:" GridPane.rowIndex="5" />
+                    <TextField fx:id="txtMaThayThe" promptText="SINHNHAT" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+
+                    <Label styleClass="label_infoOrder" text="Giá trị:" GridPane.rowIndex="7" />
+                    <TextField fx:id="txtPhanTram" promptText="\%/đ" GridPane.columnIndex="1" GridPane.rowIndex="7" />
+
+                    <Label styleClass="label_infoOrder" text="Ưu đãi:" GridPane.rowIndex="6" />
+                    <ComboBox fx:id="cbUudai" promptText="Ưu đãi" styleClass="uudai_combobox" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+               <rowConstraints>
+                  <RowConstraints />
+                  <RowConstraints />
+                  <RowConstraints />
+                  <RowConstraints />
+                  <RowConstraints />
+                  <RowConstraints />
+                  <RowConstraints />
+                  <RowConstraints />
+               </rowConstraints>
+                </GridPane>
+            </VBox>
+            <!-- Hàng nút hành động -->
+            <HBox alignment="CENTER" spacing="10">
+                <Button fx:id="btnThem" style="-fx-background-color: #1CD446FF" styleClass="btn-action" text="Thêm" />
+                <Button fx:id="btnXoa" style="-fx-background-color: #ff383c" styleClass="btn-action" text="Xóa" />
+                <Button fx:id="btnSua" style="-fx-background-color: #0D6EFDFF" styleClass="btn-action" text="Sửa" />
+                <Button fx:id="btnInQR" style="-fx-background-color: #8356b1" styleClass="btn-action" text="IN QR" />
+            </HBox>
+        </VBox>
+    </right>
+</BorderPane>

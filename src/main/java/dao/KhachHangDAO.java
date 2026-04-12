@@ -1,0 +1,290 @@
+package dao;
+
+import connectDB.connectDB;
+import entity.HangKhachHang;
+import entity.KhachHang;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class KhachHangDAO {
+
+    // ===== LẤY TOÀN BỘ DANH SÁCH KHÁCH HÀNG =====
+    public static List<KhachHang> getAll() {
+        List<KhachHang> list = new ArrayList<>();
+
+        String sql = """
+        SELECT kh.maKH,
+               kh.maHang,
+               kh.tenKH,
+               kh.sdt,
+               kh.gioiTinh,
+               kh.diemTichLuy,
+               hkh.diemHang,
+               hkh.giamGia,
+               hkh.moTa
+        FROM KhachHang kh
+        JOIN HangKhachHang hkh ON kh.maHang = hkh.maHang
+        """;
+
+        try (Statement st = connectDB.getConnection().createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+
+            while (rs.next()) {
+
+                HangKhachHang hang = new HangKhachHang(
+                        rs.getString("maHang"),
+                        rs.getString("moTa"),
+                        rs.getInt("giamGia"),
+                        rs.getInt("diemHang")
+                );
+
+                KhachHang kh = new KhachHang(
+                        rs.getString("maKH"),
+                        rs.getInt("diemTichLuy"),
+                        rs.getBoolean("gioiTinh"),
+                        rs.getString("sdt"),
+                        rs.getString("tenKH"),
+                        hang
+                );
+
+                list.add(kh);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+
+    // ===== THÊM KHÁCH HÀNG MỚI =====
+    public static boolean insert(KhachHang kh) {
+        String sql = "INSERT INTO KhachHang(maKH, maHang, tenKH, sdt, gioiTinh, diemTichLuy) VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = connectDB.getConnection().prepareStatement(sql)) {
+            ps.setString(1, kh.getMaKhachHang());
+            ps.setString(2, kh.getHangKhachHang() != null ? kh.getHangKhachHang().getMaHang() : null);
+            ps.setString(3, kh.getTenKhachHang());
+            ps.setString(4, kh.getSdt());
+            ps.setBoolean(5, kh.isGioiTinh());
+            ps.setInt(6, kh.getDiemTichLuy());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ===== CẬP NHẬT THÔNG TIN KHÁCH HÀNG =====
+    public static boolean update(KhachHang kh) {
+        String sql = "UPDATE KhachHang SET tenKH=?, sdt=?, gioiTinh=?, diemTichLuy=? WHERE maKH=?";
+        try (PreparedStatement ps = connectDB.getConnection().prepareStatement(sql)) {
+            ps.setString(1, kh.getTenKhachHang());
+            ps.setString(2, kh.getSdt());
+            ps.setBoolean(3, kh.isGioiTinh());
+            ps.setInt(4, kh.getDiemTichLuy());
+            ps.setString(5, kh.getMaKhachHang());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ===== XÓA KHÁCH HÀNG =====
+    public static boolean delete(String maKH) {
+        String sql = "DELETE FROM KhachHang WHERE maKH=?";
+        try (PreparedStatement ps = connectDB.getConnection().prepareStatement(sql)) {
+            ps.setString(1, maKH);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ===== TÌM KHÁCH HÀNG THEO SỐ ĐIỆN THOẠI =====
+    public KhachHang findBySDT(String sdt) {
+        String sql = "SELECT * FROM KhachHang WHERE sdt = ?";
+        try (PreparedStatement ps = connectDB.getConnection().prepareStatement(sql)) {
+            ps.setString(1, sdt);
+            List<HangKhachHang> dsHang = HangKhachDAO.getAll();
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String maHang = rs.getString("maHang");
+                    HangKhachHang hang = dsHang.stream()
+                            .filter(h -> h.getMaHang().equals(maHang))
+                            .findFirst()
+                            .orElse(null);
+                    return new KhachHang(
+                            rs.getString("maKH"),
+                            rs.getInt("diemTichLuy"),
+                            rs.getBoolean("gioiTinh"),
+                            rs.getString("sdt"),
+                            rs.getString("tenKH"),
+                            hang
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    // ===== LẤY MÃ KHÁCH HÀNG CUỐI CÙNG =====
+    public static String getMaKHCuoi() {
+        String sql = "SELECT TOP 1 maKH FROM KhachHang ORDER BY maKH DESC";
+        try (Statement st = connectDB.getConnection().createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getString("maKH");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public KhachHang getById(String maKH) {
+        KhachHang kh = null;
+        String sql = "SELECT * FROM KhachHang WHERE maKH = ?";
+        try (PreparedStatement stmt = connectDB.getConnection().prepareStatement(sql)) {
+            stmt.setString(1, maKH);
+            List<HangKhachHang> dsHang = HangKhachDAO.getAll();
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String maHang = rs.getString("maHang");
+                    HangKhachHang hang = dsHang.stream()
+                            .filter(h -> h.getMaHang().equals(maHang))
+                            .findFirst()
+                            .orElse(null);
+                    kh = new KhachHang(
+                            rs.getString("maKH"),
+                            rs.getInt("diemTichLuy"),
+                            rs.getBoolean("gioiTinh"),
+                            rs.getString("sdt"),
+                            rs.getString("tenKH"),
+                            hang
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return kh;
+    }
+
+    public static KhachHang getByID(String maKH) {
+        KhachHang kh = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            // Kết nối giống NhanVienDAO
+            connectDB.getInstance().connect();
+            Connection con = connectDB.getConnection();
+
+            String sql = "SELECT * FROM KhachHang WHERE maKH = ?";
+            ps = con.prepareStatement(sql);
+            ps.setString(1, maKH);
+            rs = ps.executeQuery();
+
+            if (rs.next()) {
+                String maHang = rs.getString("maHang");
+                HangKhachHang hang = (maHang != null) ? HangKhachDAO.getByID(maHang) : null;
+
+                kh = new KhachHang(
+                        rs.getString("maKH"),
+                        rs.getInt("diemTichLuy"),
+                        rs.getBoolean("gioiTinh"),
+                        rs.getString("sdt"),
+                        rs.getString("tenKH"),
+                        hang
+                );
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi lấy khách hàng theo mã: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return kh;
+    }
+
+
+    public static String tuSinhMaKhachHang() {
+        String sql = "SELECT TOP 1 maKH FROM KhachHang ORDER BY maKH DESC";
+        String lastMa = null;
+        try (Connection conn = connectDB.getInstance().getNewConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) lastMa = rs.getString("maKH");
+        } catch (SQLException e) {
+            System.err.println("Lỗi lấy mã KH cuối: " + e.getMessage());
+        }
+
+        int so = (lastMa != null) ? Integer.parseInt(lastMa.substring(2)) + 1 : 1;
+        return String.format("KH%04d", so);
+    }
+
+    public KhachHang taoKhachHangMoi(KhachHang kh) {
+        String sql = """
+        INSERT INTO KhachHang(maKH, tenKH, sdt, gioiTinh, diemTichLuy, maHang)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """;
+
+        try (Connection conn = connectDB.getInstance().getNewConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, kh.getMaKhachHang());
+            ps.setString(2, kh.getTenKhachHang());
+            ps.setString(3, kh.getSdt());
+            ps.setBoolean(4, kh.isGioiTinh());
+            ps.setInt(5, kh.getDiemTichLuy());
+            ps.setString(6, kh.getHangKhachHang().getMaHang());
+
+            if (ps.executeUpdate() > 0) {
+                System.out.println("Đã thêm khách hàng mới vào DB: " + kh.getMaKhachHang());
+                return kh;
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi thêm khách hàng mới: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+
+    public static String maKHCuoi() {
+        String sql = "SELECT TOP 1 maKH FROM KhachHang ORDER BY maKH DESC";
+        String maKHCuoi = null;
+
+        try {
+            connectDB.getInstance().connect();
+            Connection con = connectDB.getConnection();
+
+            try (PreparedStatement ps = con.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    maKHCuoi = rs.getString("maKH");
+                }
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi lấy mã khách hàng cuối: " + e.getMessage());
+        }
+        return maKHCuoi;
+    }
+
+
+}

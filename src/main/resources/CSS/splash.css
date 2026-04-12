@@ -1,0 +1,42 @@
+.splash-root {
+    -fx-background-color: #202020;
+}
+
+.splash-inner {
+    /* không màu, chỉ dùng để canh giữa */
+    -fx-background-color: transparent;
+}
+
+.left-pane {
+    -fx-background-color: #f9caa8;
+    -fx-background-radius: 0 60 60 0;
+    -fx-alignment: center;
+}
+
+.splash-title-main {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3b2418;
+}
+
+.splash-title-sub {
+    -fx-font-size: 14px;
+    -fx-text-fill: #3b2418;
+}
+
+.progress-bg {
+    -fx-fill: #ffffff;
+}
+
+.progress-fill {
+    -fx-fill: #47a447;
+}
+
+.splash-caption {
+    -fx-font-size: 11px;
+    -fx-text-fill: #3b2418;
+}
+
+.splash-right {
+    -fx-fill: #f4753c;
+}

@@ -1,0 +1,400 @@
+.dashboard-bg {
+    -fx-background-color: #d9d9d9;
+}
+
+.info-card {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-padding: 16;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 4, 0, 0, 2);
+}
+
+.avatar-img {
+    -fx-background-radius: 100%;
+    -fx-border-radius: 100%;
+    -fx-padding: 8;
+}
+
+.info-label{
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.card {
+    -fx-background-color: white;
+    -fx-padding: 12;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 4, 0, 0, 2);
+}
+
+.card-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+}
+
+.text-green { -fx-text-fill: #22aa33; }
+.text-orange { -fx-text-fill: #f5a623; }
+.text-red { -fx-text-fill: #e74c3c; }
+
+.subtitle {
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+}
+
+.small-btn {
+    -fx-background-color: black;
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 5 10;
+    -fx-background-radius: 6;
+}
+
+/* --- Thẻ chứa toàn bộ thông báo --- */
+.notification-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: #dcdcdc;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 6, 0, 2, 2);
+    -fx-padding: 16;
+}
+
+.box_not{
+    -fx-background-color: #efefef;
+    -fx-background-radius: 20;
+
+}
+
+.subtitle {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333;
+}
+
+.borderNotice {
+    -fx-border-color: black;
+    -fx-border-width: 2;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-background-color: #f9fbff;
+    -fx-padding: 10;
+}
+
+.alert-red {
+    -fx-background-color: #ffe6e6;
+    -fx-border-color: #ff4d4d;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #b30000;
+    -fx-padding: 6 10 6 10;
+    -fx-font-weight: bold;
+    -fx-pref-width: 220px;
+}
+
+.alert-green {
+    -fx-background-color: #e6ffe6;
+    -fx-border-color: #33cc33;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #006600;
+    -fx-padding: 6 10 6 10;
+    -fx-font-weight: bold;
+    -fx-pref-width: 220px;
+}
+
+/* --- Thẻ chung cho tất cả thống kê --- */
+.stat-card {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-border-width: 1.2;
+    -fx-padding: 20;
+    -fx-spacing: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 8, 0, 3, 3);
+    -fx-transition: 0.3s;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.card_infoRT {
+    -fx-background-color: #EFEFEF;
+    -fx-padding: 20;
+    -fx-alignment: center;
+    -fx-spacing: 16;
+    -fx-background-radius: 12;
+}
+
+/* --- Tiêu đề trong mỗi card --- */
+.card-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333;
+}
+
+/* --- Văn bản phụ --- */
+.text-green {
+    -fx-text-fill: #27ae60;
+    -fx-font-weight: bold;
+}
+
+.text-orange {
+    -fx-text-fill: #f39c12;
+    -fx-font-weight: bold;
+}
+
+.text-red {
+    -fx-text-fill: #e74c3c;
+    -fx-font-weight: bold;
+}
+
+.label_CardInfo{
+    -fx-font-size: 15;
+}
+
+/* --- Doanh thu --- */
+.money-text {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #16a085;
+}
+
+/* --- Tổng khách --- */
+.count-text {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2980b9;
+}
+
+/*HOA DON*/
+.countHD{
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+.mau1{
+    -fx-text-fill: #ff0000;
+}
+
+.mau2{
+    -fx-text-fill: #ffd500;
+}
+
+.mau3{
+     -fx-text-fill: #1aff00;
+ }
+.vboxHD{
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}
+/*KHU VUC*/
+.countKV{
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+.vboxKV{
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}
+/*DOANH THU*/
+.countDT{
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ff0000;
+}
+.countKH{
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2980b9;
+}
+/*css biểu đồ*/
+.chart_Background {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-border-color: #dcdcdc;
+    -fx-border-width: 1;
+    -fx-padding: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 6, 0, 0, 2);
+}
+
+.subtitle_Chart {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333;
+}
+
+.scroll-bar {
+    -fx-background-color: #efefef;
+    -fx-background-insets: 0;
+    -fx-background-radius: 20;
+    -fx-padding: 10 0 0 0;
+}
+
+.scroll-bar > .viewport {
+    -fx-background-color: #efefef;
+    -fx-background-radius: 20;
+    -fx-background-insets: 0;
+}
+
+.scroll-bar:vertical {
+    -fx-pref-width: 12px;
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+    -fx-background-radius: 16;
+    -fx-padding: 30;
+}
+
+.scroll-bar:vertical .thumb {
+    -fx-background-color: #E6763E;
+    -fx-background-radius: 8;
+    -fx-max-height: 60px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 3,0,0,1);
+}
+
+.scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #c1915f;
+}
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-opacity: 0;
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+}
+/*màu cột*/
+/*.chart-bar {*/
+/*    -fx-padding: 0 45;      !* giảm padding để cột nhỏ lại *!*/
+/*}*/
+
+/*.bar-chart .chart-plot-background {*/
+/*    -fx-padding: 10;*/
+/*}*/
+
+.chart-bar:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 8, 0, 0, 2);
+    -fx-opacity: 0.8;
+    -fx-bar-fill: green;
+}
+
+
+/*!*moi*!*/
+/*.chart_Background {*/
+/*    -fx-background-color: #ffd500;*/
+/*    -fx-background-radius: 12px;*/
+/*    -fx-padding: 12px;*/
+/*    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 3);*/
+/*}*/
+/*!* Màu thân cột *!*/
+/*.default-color0.chart-bar {*/
+/*    -fx-bar-fill: #4CAF50;   !* Xanh lá đẹp *!*/
+/*}*/
+
+/*!* Màu chữ trên trục X và Y *!*/
+/*.axis-label {*/
+/*    -fx-text-fill: #333;*/
+/*    -fx-font-size: 14px;*/
+/*}*/
+
+/*.chart-legend-item-symbol {*/
+/*    -fx-background-color: #4CAF50; !* trùng màu cột *!*/
+/*}*/
+/*!* Màu đường *!*/
+/*.default-color0.chart-series-line {*/
+/*    -fx-stroke: #ff0000; !* Đỏ cam *!*/
+/*    -fx-stroke-width: 3px;*/
+/*}*/
+
+/*!* Màu điểm (symbols) *!*/
+/*.default-color0.chart-line-symbol {*/
+/*    -fx-background-color: #FF5722, white;*/
+/*    -fx-padding: 4px;*/
+/*}*/
+
+/* ========= ITEM THÔNG BÁO ========= */
+
+.notif-item {
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-border-color: #2f1d0b;
+    -fx-border-width: 2;
+    -fx-border-radius: 16;
+    -fx-padding: 0;
+    -fx-spacing: 1;
+}
+
+.notif-left {
+    -fx-padding: 8 0 2 10;
+    -fx-spacing: 2;
+    -fx-min-width: 90px;
+    -fx-border-color: transparent #2f1d0b transparent transparent;
+    -fx-border-width: 0 2 0 0;
+    -fx-background-radius: 12 0 0 12;
+    -fx-border-radius: 12 0 0 12;
+}
+.notif-sub {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+
+.notif-sub-right{
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-padding: 1;
+}
+
+.notif-sub-right-02{
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 1;
+}
+
+/* --- Status tags nhỏ gọn --- */
+.notif-status-green {
+    -fx-background-color: #baffc2;
+    -fx-text-fill: #008000;
+    -fx-font-size: 12px;       /* từ 14px → 11px */
+    -fx-font-weight: bold;
+    -fx-padding: 2 6;          /* từ 4 12 → 2 6 */
+    -fx-background-radius: 10;
+}
+
+.notif-status-red {
+    -fx-background-color: #ffb8b8;
+    -fx-text-fill: #b30000;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 6;
+    -fx-background-radius: 10;
+}
+
+.notif-status-yellow {
+    -fx-background-color: #eaddff;
+    -fx-text-fill: #2750A0;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 6;
+    -fx-background-radius: 10;
+}
+
+.notif-stock {
+    -fx-min-width: 90px;
+    -fx-max-width: 90px;
+    -fx-font-size: 12px;
+}
+
+.notif-backgr-red {
+    -fx-background-color: #F44336;
+}
+
+.notif-backgr-green {
+    -fx-background-color: #2BAE66FF;
+}
+
+.notif-backgr-yellow {
+    -fx-background-color: #89CFF0;
+}
+
