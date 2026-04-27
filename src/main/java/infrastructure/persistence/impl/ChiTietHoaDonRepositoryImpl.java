@@ -4,8 +4,8 @@ import core.entity.ChiTietHoaDon;
 import core.entity.ChiTietHoaDonId;
 import core.repository.ChiTietHoaDonRepository;
 import infrastructure.persistence.AbstractRepository;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 
 import java.util.List;
 
@@ -23,15 +23,16 @@ public class ChiTietHoaDonRepositoryImpl extends AbstractRepository<ChiTietHoaDo
 
     @Override
     public void deleteByMaHD(String maHD) {
-        Transaction tx = null;
-        try (Session session = openSession()) {
-            tx = session.beginTransaction();
-            session.createMutationQuery("DELETE FROM ChiTietHoaDon WHERE id.maHD = :maHD")
+        EntityTransaction tx = null;
+        try (EntityManager em = openEntityManager()) {
+            tx = em.getTransaction();
+            tx.begin();
+            em.createQuery("DELETE FROM ChiTietHoaDon WHERE id.maHD = :maHD")
                    .setParameter("maHD", maHD)
                    .executeUpdate();
             tx.commit();
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null && tx.isActive()) tx.rollback();
             throw new RuntimeException("deleteByMaHD failed", e);
         }
     }

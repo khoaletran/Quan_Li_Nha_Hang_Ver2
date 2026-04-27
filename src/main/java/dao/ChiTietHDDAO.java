@@ -1,384 +1,154 @@
 package dao;
 
-import connectDB.connectDB;
 import entity.*;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Tuple;
 
-import java.sql.*;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class ChiTietHDDAO {
 
-    // ============================================================================
-    //  MAPPER KHÔNG getByID – TẠO ĐỦ Món + Loại + Hóa Đơn (maHD)
-    // ============================================================================
-    private static ChiTietHoaDon mapCTHDFull(ResultSet rs) throws SQLException {
+    private static EntityManager em() { return JpaConfig.getEntityManagerFactory().createEntityManager(); }
 
-        // ===== MÓN =====
+    private static ChiTietHoaDon mapCTHDFull(Tuple t) {
         Mon mon = new Mon();
-        mon.setMaMon(rs.getString("maMon"));
-        mon.setTenMon(rs.getString("tenMon"));
-        mon.setGiaGoc(rs.getDouble("giaGoc"));
-        mon.setHinhAnh(rs.getString("hinhAnh"));
-
-        // ===== LOẠI MÓN =====
+        mon.setMaMon(t.get("maMon", String.class));
+        mon.setTenMon(t.get("tenMon", String.class));
+        mon.setGiaGoc(t.get("giaGoc") != null ? ((Number) t.get("giaGoc")).doubleValue() : 0);
+        mon.setHinhAnh(t.get("hinhAnh", String.class));
         LoaiMon loai = new LoaiMon();
-        loai.setMaLoaiMon(rs.getString("maLoaiMon"));
-        loai.setTenLoaiMon(rs.getString("tenLoaiMon"));
+        loai.setMaLoaiMon(t.get("maLoaiMon", String.class));
+        loai.setTenLoaiMon(t.get("tenLoaiMon", String.class));
         mon.setLoaiMon(loai);
-
-        // ===== HÓA ĐƠN =====
         HoaDon hd = new HoaDon();
-        hd.setMaHD(rs.getString("maHD"));
-        hd.setTgLapHD(rs.getTimestamp("tgLapHD") != null
-                        ? rs.getTimestamp("tgLapHD").toLocalDateTime() : null);
-        // ===== CHI TIẾT HÓA ĐƠN =====
+        hd.setMaHD(t.get("maHD", String.class));
+        Object tgLap = t.get("tgLapHD");
+        hd.setTgLapHD(tgLap instanceof Timestamp ts ? ts.toLocalDateTime() : (tgLap instanceof LocalDateTime ldt ? ldt : null));
         ChiTietHoaDon ct = new ChiTietHoaDon();
-        ct.setHoaDon(hd);
-        ct.setMon(mon);
-        ct.setSoLuong(rs.getInt("soLuong"));
-
-        // ===== GIÁ BÁN =====
-        int ptgb = rs.getInt("phanTramLoi");
-        double thanhTien = mon.getGiaGoc() * (1 + ptgb / 100.0) * ct.getSoLuong();
-        ct.setThanhTien(thanhTien);
-
+        ct.setHoaDon(hd); ct.setMon(mon);
+        ct.setSoLuong(t.get("soLuong") != null ? ((Number) t.get("soLuong")).intValue() : 0);
+        int ptgb = t.get("phanTramLoi") != null ? ((Number) t.get("phanTramLoi")).intValue() : 0;
+        ct.setThanhTien(mon.getGiaGoc() * (1 + ptgb / 100.0) * ct.getSoLuong());
         return ct;
     }
 
-
-    // ============================================================================
-    // 1. GET ALL CHI TIẾT HÓA ĐƠN THEO MÃ HÓA ĐƠN (FULL JOIN)
-    // ============================================================================
-    public static List<ChiTietHoaDon> getAllByMaHD(String maHD) {
-    List<ChiTietHoaDon> list = new ArrayList<>();
-
-    String sql = """
-        SELECT
-            cthd.maHD,
-            cthd.maMon,
-            cthd.soLuong,
-            hd.tgLapHD,
-
-            m.tenMon, m.giaGoc, m.hinhAnh,
-            lm.maLoaiMon, lm.tenLoaiMon,
-
+    private static final String SQL_BY_HD = """
+        SELECT cthd.maHD, cthd.maMon, cthd.soLuong, hd.tgLapHD,
+            m.tenMon, m.giaGoc, m.hinhAnh, lm.maLoaiMon, lm.tenLoaiMon,
             COALESCE(ptMon.phanTramLoi, ptLoai.phanTramLoi, 0) AS phanTramLoi
-
         FROM ChiTietHoaDon cthd
         JOIN Mon m ON cthd.maMon = m.maMon
         JOIN LoaiMon lm ON m.loaiMon = lm.maLoaiMon
         JOIN HoaDon hd ON hd.maHD = cthd.maHD
-
-        -- ===============================
-        -- 1) Lấy PT theo Món tại thời điểm tgLapHD
-        -- ===============================
-        OUTER APPLY (
-            SELECT TOP 1 p1.phanTramLoi
-            FROM PhanTramGiaBan p1
-            WHERE p1.maMon = m.maMon
-              AND p1.ngayApDung <= hd.tgLapHD      -- <= thời điểm hóa đơn
-            ORDER BY p1.ngayApDung DESC           -- gần nhất
-        ) ptMon
-
-        -- ===============================
-        -- 2) Lấy PT theo Loại (fallback) tại tgLapHD
-        -- ===============================
-        OUTER APPLY (
-            SELECT TOP 1 p3.phanTramLoi
-            FROM PhanTramGiaBan p3
-            WHERE p3.maLoaiMon = lm.maLoaiMon
-              AND p3.maMon IS NULL
-              AND p3.ngayApDung <= hd.tgLapHD      -- <= thời điểm hóa đơn
-            ORDER BY p3.ngayApDung DESC
-        ) ptLoai
-
-        WHERE cthd.maHD = ?
+        LEFT JOIN (SELECT p1.maMon, p1.phanTramLoi, p1.ngayApDung FROM PhanTramGiaBan p1) ptMon
+            ON ptMon.maMon = m.maMon AND ptMon.ngayApDung = (
+                SELECT MAX(p2.ngayApDung) FROM PhanTramGiaBan p2 WHERE p2.maMon = m.maMon AND p2.ngayApDung <= hd.tgLapHD)
+        LEFT JOIN (SELECT p3.maLoaiMon, p3.phanTramLoi, p3.ngayApDung FROM PhanTramGiaBan p3 WHERE p3.maMon IS NULL) ptLoai
+            ON ptLoai.maLoaiMon = lm.maLoaiMon AND ptLoai.ngayApDung = (
+                SELECT MAX(p4.ngayApDung) FROM PhanTramGiaBan p4
+                WHERE p4.maLoaiMon = lm.maLoaiMon AND p4.maMon IS NULL AND p4.ngayApDung <= hd.tgLapHD)
     """;
 
-    try (Connection conn = connectDB.getInstance().getNewConnection();
-         PreparedStatement ps = conn.prepareStatement(sql)) {
-
-        ps.setString(1, maHD);
-        ResultSet rs = ps.executeQuery();
-
-        while (rs.next()) list.add(mapCTHDFull(rs));
-
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-    return list;
-}
-
-
-
-    // ============================================================================
-    // 2. GET BY MAHD
-    // ============================================================================
-    public static List<ChiTietHoaDon> getByMaHD(String maHD) {
-        return getAllByMaHD(maHD); // dùng JOIN version
+    public static List<ChiTietHoaDon> getAllByMaHD(String maHD) {
+        List<ChiTietHoaDon> list = new ArrayList<>();
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(SQL_BY_HD + " WHERE cthd.maHD = :maHD", Tuple.class).setParameter("maHD", maHD).getResultList();
+            for (Tuple t : rows) list.add(mapCTHDFull(t));
+        } catch (Exception e) { e.printStackTrace(); }
+        return list;
     }
 
+    public static List<ChiTietHoaDon> getByMaHD(String maHD) { return getAllByMaHD(maHD); }
 
-    // ============================================================================
-    // 3. THÊM
-    // ============================================================================
     public boolean insert(ChiTietHoaDon ct) {
-        String sql = "INSERT INTO ChiTietHoaDon (maHD, maMon, soLuong) VALUES (?, ?, ?)";
-
-        try (Connection conn = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, ct.getHoaDon().getMaHD());
-            ps.setString(2, ct.getMon().getMaMon());
-            ps.setInt(3, ct.getSoLuong());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi thêm chi tiết hóa đơn: " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            em.createNativeQuery("INSERT INTO ChiTietHoaDon(maHD, maMon, soLuong) VALUES (:hd, :mon, :sl)")
+                .setParameter("hd", ct.getHoaDon().getMaHD()).setParameter("mon", ct.getMon().getMaMon())
+                .setParameter("sl", ct.getSoLuong()).executeUpdate();
+            tx.commit(); return true;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("Lỗi thêm CTHD: " + e.getMessage()); return false; }
     }
 
-
-    // ============================================================================
-    // 4. XÓA
-    // ============================================================================
     public boolean delete(String maHD, String maMon) {
-        String sql = "DELETE FROM ChiTietHoaDon WHERE maHD = ? AND maMon = ?";
-
-        try (Connection conn = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, maHD);
-            ps.setString(2, maMon);
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi xóa chi tiết hóa đơn: " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("DELETE FROM ChiTietHoaDon WHERE maHD=:hd AND maMon=:mon")
+                .setParameter("hd", maHD).setParameter("mon", maMon).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("Lỗi xóa CTHD: " + e.getMessage()); return false; }
     }
 
-
-    // ============================================================================
-    // 5. CẬP NHẬT
-    // ============================================================================
     public boolean update(ChiTietHoaDon ct) {
-        String sql = "UPDATE ChiTietHoaDon SET soLuong = ? WHERE maHD = ? AND maMon = ?";
-
-        try (Connection conn = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, ct.getSoLuong());
-            ps.setString(2, ct.getHoaDon().getMaHD());
-            ps.setString(3, ct.getMon().getMaMon());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi cập nhật chi tiết hóa đơn: " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("UPDATE ChiTietHoaDon SET soLuong=:sl WHERE maHD=:hd AND maMon=:mon")
+                .setParameter("sl", ct.getSoLuong()).setParameter("hd", ct.getHoaDon().getMaHD())
+                .setParameter("mon", ct.getMon().getMaMon()).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("Lỗi cập nhật CTHD: " + e.getMessage()); return false; }
     }
 
-
-    // ============================================================================
-    // 6. LẤY TOÀN BỘ CHI TIẾT HÓA ĐƠN (JOIN FULL)
-    // ============================================================================
     public static List<ChiTietHoaDon> getAll() {
-            List<ChiTietHoaDon> ds = new ArrayList<>();
-
-            String sql = """
-                SELECT 
-        cthd.maHD, cthd.maMon, cthd.soLuong, hd.tgLapHD,
-
-        m.tenMon, m.giaGoc, m.hinhAnh,
-        lm.maLoaiMon, lm.tenLoaiMon,
-
-        COALESCE(ptMon.phanTramLoi, ptLoai.phanTramLoi, 0) AS phanTramLoi
-
-    FROM ChiTietHoaDon cthd
-    JOIN Mon m ON cthd.maMon = m.maMon
-    JOIN LoaiMon lm ON m.loaiMon = lm.maLoaiMon
-    JOIN HoaDon hd ON hd.maHD = cthd.maHD
-
-    LEFT JOIN (
-        SELECT p1.maMon, p1.phanTramLoi, p1.ngayApDung
-        FROM PhanTramGiaBan p1
-    ) ptMon ON ptMon.maMon = m.maMon
-        AND ptMon.ngayApDung = (
-            SELECT MAX(p2.ngayApDung)
-            FROM PhanTramGiaBan p2
-            WHERE p2.maMon = m.maMon
-                AND p2.ngayApDung <= hd.tgLapHD
-        )
-
-    LEFT JOIN (
-        SELECT p3.maLoaiMon, p3.phanTramLoi, p3.ngayApDung
-        FROM PhanTramGiaBan p3
-        WHERE p3.maMon IS NULL
-    ) ptLoai ON ptLoai.maLoaiMon = lm.maLoaiMon
-            AND ptLoai.ngayApDung = (
-                SELECT MAX(p4.ngayApDung)
-                FROM PhanTramGiaBan p4
-                WHERE p4.maLoaiMon = lm.maLoaiMon
-                AND p4.maMon IS NULL
-                AND p4.ngayApDung <= hd.tgLapHD
-            );
-
-        """;
-
-        try (Connection conn = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) ds.add(mapCTHDFull(rs));
-
-        } catch (Exception e) {
-            System.err.println("Lỗi getAll CTHD: " + e.getMessage());
-        }
-
+        List<ChiTietHoaDon> ds = new ArrayList<>();
+        try (EntityManager em = em()) {
+            @SuppressWarnings("unchecked")
+            List<Tuple> rows = em.createNativeQuery(SQL_BY_HD, Tuple.class).getResultList();
+            for (Tuple t : rows) ds.add(mapCTHDFull(t));
+        } catch (Exception e) { System.err.println("Lỗi getAll CTHD: " + e.getMessage()); }
         return ds;
     }
 
     public static List<ChiTietHoaDon> getAllInDay() {
         List<ChiTietHoaDon> ds = new ArrayList<>();
-
-        String sql = """
-                SELECT 
-        cthd.maHD, cthd.maMon, cthd.soLuong, hd.tgLapHD, hd.tgCheckIn,
-        m.tenMon, m.giaGoc, m.hinhAnh,
-        lm.maLoaiMon, lm.tenLoaiMon,
-
-        COALESCE(ptMon.phanTramLoi, ptLoai.phanTramLoi, 0) AS phanTramLoi
-
-    FROM ChiTietHoaDon cthd
-    JOIN Mon m ON cthd.maMon = m.maMon
-    JOIN LoaiMon lm ON m.loaiMon = lm.maLoaiMon
-    JOIN HoaDon hd ON hd.maHD = cthd.maHD
-
-    LEFT JOIN (
-        SELECT p1.maMon, p1.phanTramLoi, p1.ngayApDung
-        FROM PhanTramGiaBan p1
-    ) ptMon ON ptMon.maMon = m.maMon
-        AND ptMon.ngayApDung = (
-            SELECT MAX(p2.ngayApDung)
-            FROM PhanTramGiaBan p2
-            WHERE p2.maMon = m.maMon
-                AND p2.ngayApDung <= hd.tgLapHD
-        )
-    LEFT JOIN (
-        SELECT p3.maLoaiMon, p3.phanTramLoi, p3.ngayApDung
-        FROM PhanTramGiaBan p3
-        WHERE p3.maMon IS NULL
-    ) ptLoai ON ptLoai.maLoaiMon = lm.maLoaiMon
-            AND ptLoai.ngayApDung = (
-                SELECT MAX(p4.ngayApDung)
-                FROM PhanTramGiaBan p4
-                WHERE p4.maLoaiMon = lm.maLoaiMon
-                AND p4.maMon IS NULL
-                AND p4.ngayApDung <= hd.tgLapHD
-        )
-    WHERE hd.tgCheckin >= CAST(GETDATE() AS DATE)
-		AND hd.tgCheckin < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))
-        """;
-
-        try (Connection conn = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) ds.add(mapCTHDFull(rs));
-
-        } catch (Exception e) {
-            System.err.println("Lỗi getAll CTHD: " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            String sql = SQL_BY_HD + " WHERE hd.tgCheckin >= CURDATE() AND hd.tgCheckin < DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
+            @SuppressWarnings("unchecked")
+            List<Tuple> rows = em.createNativeQuery(sql, Tuple.class).getResultList();
+            for (Tuple t : rows) ds.add(mapCTHDFull(t));
+        } catch (Exception e) { System.err.println("Lỗi getAllInDay CTHD: " + e.getMessage()); }
         return ds;
     }
 
-    // ============================================================================
-    // 7. THỐNG KÊ THEO THÁNG NĂM 
-    // ============================================================================
     public static List<ChiTietHoaDon> getAllCTHDTheoThangNam(int nam, int thang) {
         List<ChiTietHoaDon> ds = new ArrayList<>();
-
-        String sql = """
-            SELECT 
-                m.maMon, m.tenMon, m.hinhAnh, m.soLuong AS soLuongTon,
-                SUM(cthd.soLuong) AS tongSoLuong
-            FROM ChiTietHoaDon cthd
-            JOIN HoaDon hd ON cthd.maHD = hd.maHD
-            JOIN Mon m ON cthd.maMon = m.maMon
-            WHERE YEAR(hd.tgLapHD) = ?
-        """;
-
-        if (thang != 0) sql += " AND MONTH(hd.tgLapHD) = ? ";
-
+        String sql = "SELECT m.maMon, m.tenMon, m.hinhAnh, m.soLuong AS soLuongTon, SUM(cthd.soLuong) AS tongSoLuong " +
+                     "FROM ChiTietHoaDon cthd JOIN HoaDon hd ON cthd.maHD = hd.maHD JOIN Mon m ON cthd.maMon = m.maMon " +
+                     "WHERE YEAR(hd.tgLapHD) = :nam";
+        if (thang != 0) sql += " AND MONTH(hd.tgLapHD) = :thang";
         sql += " GROUP BY m.maMon, m.tenMon, m.hinhAnh, m.soLuong ORDER BY tongSoLuong DESC";
-
-        try (Connection conn = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, nam);
-            if (thang != 0) ps.setInt(2, thang);
-
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
+        try (EntityManager em = em()) {
+            var q = em.createNativeQuery(sql, Tuple.class).setParameter("nam", nam);
+            if (thang != 0) q.setParameter("thang", thang);
+            for (Tuple t : (List<Tuple>) q.getResultList()) {
                 Mon m = new Mon();
-                m.setMaMon(rs.getString("maMon"));
-                m.setTenMon(rs.getString("tenMon"));
-                m.setHinhAnh(rs.getString("hinhAnh"));
-                m.setSoLuong(rs.getInt("soLuongTon"));
-
+                m.setMaMon(t.get("maMon", String.class));
+                m.setTenMon(t.get("tenMon", String.class));
+                m.setHinhAnh(t.get("hinhAnh", String.class));
+                m.setSoLuong(((Number) t.get("soLuongTon")).intValue());
                 ChiTietHoaDon ct = new ChiTietHoaDon();
-                ct.setMon(m);
-                ct.setSoLuong(rs.getInt("tongSoLuong"));
-
+                ct.setMon(m); ct.setSoLuong(((Number) t.get("tongSoLuong")).intValue());
                 ds.add(ct);
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        } catch (Exception e) { e.printStackTrace(); }
         return ds;
     }
 
-
-    // ============================================================================
-    // 8. LẤY SỐ LƯỢNG BÁN THEO THÁNG NĂM
-    // ============================================================================
     public static Map<String, Integer> getSoLuongTheoThangNam(int nam, int thang) {
         Map<String, Integer> map = new HashMap<>();
-
-        String sql = """
-            SELECT m.maMon, SUM(cthd.soLuong) AS tongSoLuong
-            FROM ChiTietHoaDon cthd
-            JOIN HoaDon hd ON cthd.maHD = hd.maHD
-            JOIN Mon m ON cthd.maMon = m.maMon
-            WHERE YEAR(hd.tgLapHD) = ? AND MONTH(hd.tgLapHD) = ?
-            GROUP BY m.maMon
-        """;
-
-        try (Connection conn = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, nam);
-            ps.setInt(2, thang);
-
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                map.put(rs.getString("maMon"), rs.getInt("tongSoLuong"));
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(
+                "SELECT m.maMon, SUM(cthd.soLuong) AS tongSoLuong FROM ChiTietHoaDon cthd JOIN HoaDon hd ON cthd.maHD = hd.maHD JOIN Mon m ON cthd.maMon = m.maMon WHERE YEAR(hd.tgLapHD) = :nam AND MONTH(hd.tgLapHD) = :thang GROUP BY m.maMon",
+                Tuple.class).setParameter("nam", nam).setParameter("thang", thang).getResultList();
+            for (Tuple t : rows) map.put(t.get("maMon", String.class), ((Number) t.get("tongSoLuong")).intValue());
+        } catch (Exception e) { e.printStackTrace(); }
         return map;
     }
-
 }

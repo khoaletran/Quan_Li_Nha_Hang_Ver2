@@ -1,192 +1,95 @@
 package dao;
 
-import connectDB.connectDB;
 import entity.Mon;
 import entity.LoaiMon;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Tuple;
 
-import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MonDAO {
 
-    // ==========================
-    // MAP RESULT → MON
-    // ==========================
-    private static Mon map(ResultSet rs, List<LoaiMon> cacheLoai) throws SQLException {
+    private static EntityManager em() { return JpaConfig.getEntityManagerFactory().createEntityManager(); }
+
+    private static Mon mapRow(Tuple t, List<LoaiMon> cache) {
         Mon m = new Mon();
-
-        m.setMaMon(rs.getString("maMon"));
-        m.setTenMon(rs.getString("tenMon"));
-        m.setMoTa(rs.getString("moTa"));
-        m.setHinhAnh(rs.getString("hinhAnh"));
-        m.setGiaGoc(rs.getDouble("giaGoc"));
-        m.setSoLuong(rs.getInt("soLuong"));
-
-        String maLoai = rs.getString("loaiMon");
-        if (maLoai != null) {
-            LoaiMon loai = cacheLoai.stream()
-                    .filter(x -> x.getMaLoaiMon().equals(maLoai))
-                    .findFirst()
-                    .orElse(null);
-            m.setLoaiMon(loai);
-        }
-
-        return m;
-    }
-
-    // dùng riêng cho findByID
-    private static Mon mapSingle(ResultSet rs) throws SQLException {
-        Mon m = new Mon();
-
-        m.setMaMon(rs.getString("maMon"));
-        m.setTenMon(rs.getString("tenMon"));
-        m.setMoTa(rs.getString("moTa"));
-        m.setHinhAnh(rs.getString("hinhAnh"));
-        m.setGiaGoc(rs.getDouble("giaGoc"));
-        m.setSoLuong(rs.getInt("soLuong"));
-
-        String maLoai = rs.getString("loaiMon");
-        if (maLoai != null)
+        m.setMaMon(t.get("maMon", String.class));
+        m.setTenMon(t.get("tenMon", String.class));
+        m.setMoTa(t.get("moTa", String.class));
+        m.setHinhAnh(t.get("hinhAnh", String.class));
+        m.setGiaGoc(t.get("giaGoc") != null ? ((Number) t.get("giaGoc")).doubleValue() : 0);
+        m.setSoLuong(t.get("soLuong") != null ? ((Number) t.get("soLuong")).intValue() : 0);
+        String maLoai = t.get("loaiMon", String.class);
+        if (maLoai != null && cache != null) {
+            m.setLoaiMon(cache.stream().filter(x -> x.getMaLoaiMon().equals(maLoai)).findFirst().orElse(null));
+        } else if (maLoai != null) {
             m.setLoaiMon(LoaiMonDAO.getByID(maLoai));
-
+        }
         return m;
     }
 
-    // ==========================
-    // GET ALL
-    // ==========================
+    private static final String SELECT = "SELECT maMon, tenMon, moTa, hinhAnh, giaGoc, soLuong, loaiMon FROM Mon";
+
     public static List<Mon> getAll() {
         List<Mon> ds = new ArrayList<>();
-        String sql = "SELECT * FROM Mon ORDER BY maMon";
-
-        try (Connection con = connectDB.getInstance().getNewConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            List<LoaiMon> cacheLoai = LoaiMonDAO.getAll();
-
-            while (rs.next()) {
-                ds.add(map(rs, cacheLoai));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("MonDAO.getAll(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(SELECT + " ORDER BY maMon", Tuple.class).getResultList();
+            List<LoaiMon> cache = LoaiMonDAO.getAll();
+            for (Tuple t : rows) ds.add(mapRow(t, cache));
+        } catch (Exception e) { System.err.println("MonDAO.getAll(): " + e.getMessage()); }
         return ds;
     }
 
-    // ==========================
-    // FIND BY ID
-    // ==========================
     public static Mon findByID(String maMon) {
-        String sql = "SELECT * FROM Mon WHERE maMon=?";
-
-        try (Connection con = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maMon);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? mapSingle(rs) : null;
-            }
-
-        } catch (SQLException e) {
-            System.err.println("MonDAO.findByID(): " + e.getMessage());
-        }
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(SELECT + " WHERE maMon=:ma", Tuple.class).setParameter("ma", maMon).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0), null);
+        } catch (Exception e) { System.err.println("MonDAO.findByID(): " + e.getMessage()); }
         return null;
     }
 
-    // ==========================
-    // INSERT
-    // ==========================
     public static boolean insert(Mon mon) {
-        String sql = """
-            INSERT INTO Mon(maMon, tenMon, moTa, hinhAnh, giaGoc, soLuong, loaiMon)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """;
-
-        try (Connection con = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, mon.getMaMon());
-            ps.setString(2, mon.getTenMon());
-            ps.setString(3, mon.getMoTa());
-            ps.setString(4, mon.getHinhAnh());
-            ps.setDouble(5, mon.getGiaGoc());
-            ps.setInt(6, mon.getSoLuong());
-            ps.setString(7, mon.getLoaiMon() != null ? mon.getLoaiMon().getMaLoaiMon() : null);
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("MonDAO.insert(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            em.createNativeQuery("INSERT INTO Mon(maMon, tenMon, moTa, hinhAnh, giaGoc, soLuong, loaiMon) VALUES (:ma, :ten, :mo, :ha, :gg, :sl, :lm)")
+                .setParameter("ma", mon.getMaMon()).setParameter("ten", mon.getTenMon()).setParameter("mo", mon.getMoTa())
+                .setParameter("ha", mon.getHinhAnh()).setParameter("gg", mon.getGiaGoc()).setParameter("sl", mon.getSoLuong())
+                .setParameter("lm", mon.getLoaiMon() != null ? mon.getLoaiMon().getMaLoaiMon() : null).executeUpdate();
+            tx.commit(); return true;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("MonDAO.insert(): " + e.getMessage()); return false; }
     }
 
-    // ==========================
-    // UPDATE
-    // ==========================
     public static boolean update(Mon mon) {
-        String sql = """
-            UPDATE Mon
-            SET tenMon=?, moTa=?, hinhAnh=?, giaGoc=?, soLuong=?, loaiMon=?
-            WHERE maMon=?
-        """;
-
-        try (Connection con = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, mon.getTenMon());
-            ps.setString(2, mon.getMoTa());
-            ps.setString(3, mon.getHinhAnh());
-            ps.setDouble(4, mon.getGiaGoc());
-            ps.setInt(5, mon.getSoLuong());
-            ps.setString(6, mon.getLoaiMon() != null ? mon.getLoaiMon().getMaLoaiMon() : null);
-            ps.setString(7, mon.getMaMon());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("MonDAO.update(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("UPDATE Mon SET tenMon=:ten, moTa=:mo, hinhAnh=:ha, giaGoc=:gg, soLuong=:sl, loaiMon=:lm WHERE maMon=:ma")
+                .setParameter("ten", mon.getTenMon()).setParameter("mo", mon.getMoTa()).setParameter("ha", mon.getHinhAnh())
+                .setParameter("gg", mon.getGiaGoc()).setParameter("sl", mon.getSoLuong())
+                .setParameter("lm", mon.getLoaiMon() != null ? mon.getLoaiMon().getMaLoaiMon() : null)
+                .setParameter("ma", mon.getMaMon()).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("MonDAO.update(): " + e.getMessage()); return false; }
     }
 
-    // ==========================
-    // DELETE
-    // ==========================
     public static boolean delete(String maMon) {
-        String sql = "DELETE FROM Mon WHERE maMon=?";
-
-        try (Connection con = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maMon);
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("MonDAO.delete(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("DELETE FROM Mon WHERE maMon=:ma").setParameter("ma", maMon).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("MonDAO.delete(): " + e.getMessage()); return false; }
     }
 
-    // ==========================
-    // GET LATEST MA
-    // ==========================
     public static String getLatestMaMon() {
-        String sql = "SELECT TOP 1 maMon FROM Mon ORDER BY maMon DESC";
-
-        try (Connection con = connectDB.getInstance().getNewConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            return rs.next() ? rs.getString("maMon") : null;
-
-        } catch (SQLException e) {
-            System.err.println("MonDAO.getLatestMaMon(): " + e.getMessage());
-            return null;
-        }
+        try (EntityManager em = em()) {
+            List<?> r = em.createNativeQuery("SELECT maMon FROM Mon ORDER BY maMon DESC LIMIT 1").getResultList();
+            if (!r.isEmpty()) return (String) r.get(0);
+        } catch (Exception e) { System.err.println("MonDAO.getLatestMaMon(): " + e.getMessage()); }
+        return null;
     }
 }

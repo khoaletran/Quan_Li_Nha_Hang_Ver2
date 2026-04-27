@@ -1,15 +1,15 @@
 package infrastructure.persistence;
 
 import core.repository.GenericRepository;
-import infrastructure.db.HibernateConfig;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Base Hibernate repository that implements GenericRepository CRUD via Session API.
+ * Base JPA repository that implements GenericRepository CRUD via EntityManager API.
  * Extend this class and implement any additional query methods needed.
  *
  * @param <T>  Entity type
@@ -23,91 +23,94 @@ public abstract class AbstractRepository<T, ID> implements GenericRepository<T, 
         this.entityClass = entityClass;
     }
 
-    /** Returns a brand-new Hibernate Session — caller must close it. */
-    protected Session openSession() {
-        return HibernateConfig.getSessionFactory().openSession();
+    /** Returns a brand-new JPA EntityManager — caller must close it. */
+    protected EntityManager openEntityManager() {
+        return JpaConfig.getEntityManagerFactory().createEntityManager();
     }
 
     // ─── GenericRepository implementation ────────────────────────────────
 
     @Override
     public List<T> findAll() {
-        try (Session session = openSession()) {
+        try (EntityManager em = openEntityManager()) {
             String hql = "FROM " + entityClass.getSimpleName();
-            return session.createQuery(hql, entityClass).list();
+            return em.createQuery(hql, entityClass).getResultList();
         }
     }
 
     @Override
     public Optional<T> findById(ID id) {
-        try (Session session = openSession()) {
-            return Optional.ofNullable(session.get(entityClass, id));
+        try (EntityManager em = openEntityManager()) {
+            return Optional.ofNullable(em.find(entityClass, id));
         }
     }
 
     @Override
     public void save(T entity) {
-        Transaction tx = null;
-        try (Session session = openSession()) {
-            tx = session.beginTransaction();
-            session.persist(entity);
+        EntityTransaction tx = null;
+        try (EntityManager em = openEntityManager()) {
+            tx = em.getTransaction();
+            tx.begin();
+            em.persist(entity);
             tx.commit();
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null && tx.isActive()) tx.rollback();
             throw new RuntimeException("save() failed for " + entityClass.getSimpleName(), e);
         }
     }
 
     @Override
     public void update(T entity) {
-        Transaction tx = null;
-        try (Session session = openSession()) {
-            tx = session.beginTransaction();
-            session.merge(entity);
+        EntityTransaction tx = null;
+        try (EntityManager em = openEntityManager()) {
+            tx = em.getTransaction();
+            tx.begin();
+            em.merge(entity);
             tx.commit();
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null && tx.isActive()) tx.rollback();
             throw new RuntimeException("update() failed for " + entityClass.getSimpleName(), e);
         }
     }
 
     @Override
     public void delete(ID id) {
-        Transaction tx = null;
-        try (Session session = openSession()) {
-            tx = session.beginTransaction();
-            T entity = session.get(entityClass, id);
+        EntityTransaction tx = null;
+        try (EntityManager em = openEntityManager()) {
+            tx = em.getTransaction();
+            tx.begin();
+            T entity = em.find(entityClass, id);
             if (entity != null) {
-                session.remove(entity);
+                em.remove(entity);
             }
             tx.commit();
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null && tx.isActive()) tx.rollback();
             throw new RuntimeException("delete() failed for " + entityClass.getSimpleName(), e);
         }
     }
 
     // ─── Helpers for subclasses ───────────────────────────────────────────
 
-    /** Execute a named HQL query and return a list. */
-    protected List<T> findByHql(String hql, Object... params) {
-        try (Session session = openSession()) {
-            var query = session.createQuery(hql, entityClass);
+    /** Execute a named JPQL query and return a list. */
+    protected List<T> findByHql(String jpql, Object... params) {
+        try (EntityManager em = openEntityManager()) {
+            var query = em.createQuery(jpql, entityClass);
             for (int i = 0; i < params.length; i += 2) {
                 query.setParameter((String) params[i], params[i + 1]);
             }
-            return query.list();
+            return query.getResultList();
         }
     }
 
-    /** Execute a named HQL query and return the first result. */
-    protected Optional<T> findFirstByHql(String hql, Object... params) {
-        try (Session session = openSession()) {
-            var query = session.createQuery(hql, entityClass).setMaxResults(1);
+    /** Execute a named JPQL query and return the first result. */
+    protected Optional<T> findFirstByHql(String jpql, Object... params) {
+        try (EntityManager em = openEntityManager()) {
+            var query = em.createQuery(jpql, entityClass).setMaxResults(1);
             for (int i = 0; i < params.length; i += 2) {
                 query.setParameter((String) params[i], params[i + 1]);
             }
-            return query.uniqueResultOptional();
+            return query.getResultStream().findFirst();
         }
     }
 }

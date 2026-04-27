@@ -1,245 +1,124 @@
 package dao;
 
-import connectDB.connectDB;
 import entity.NhanVien;
 import entity.PhieuKetCa;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Tuple;
 
-import java.sql.*;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PhieuKetCaDAO {
 
-    // ============================================
-    // MAP OBJECT
-    // ============================================
-    private static PhieuKetCa map(ResultSet rs) throws SQLException {
+    private static EntityManager em() { return JpaConfig.getEntityManagerFactory().createEntityManager(); }
 
-        String maPhieu = rs.getString("maPhieu");
-        String maNV = rs.getString("maNV");
-
-        boolean ca = rs.getBoolean("ca");
-        int soHoaDon = rs.getInt("soHoaDon");
-        double tienMat = rs.getDouble("tienMat");
-        double tienCK = rs.getDouble("tienCK");
-        double tienChenhLech = rs.getDouble("tienChenhLech");
-
-        Timestamp ts = rs.getTimestamp("ngayKetCa");
-        LocalDateTime ngayKetCa = ts != null ? ts.toLocalDateTime() : null;
-
-        Timestamp ls = rs.getTimestamp("tgLogIn");
-        LocalDateTime tgLogIn = ts != null ? ts.toLocalDateTime() : null;
-
-        String moTa = rs.getString("moTa");
-
-        // Load nhân viên đầy đủ
-        NhanVien nv = NhanVienDAO.getByID(maNV);
-
-//        return new PhieuKetCa(
-//                maPhieu,
-//                nv,
-//                ca,
-//                soHoaDon,
-//                tienMat,
-//                tienCK,
-//                tienChenhLech,
-//                ngayKetCa,
-//                tgLogIn,
-//                moTa
-//        );
-        PhieuKetCa p = new PhieuKetCa();
-
-        p.setMaPhieu(maPhieu);
-        p.setNhanVien(nv);
-        p.setCa(ca);
-        p.setSoHoaDon(soHoaDon);
-        p.setTienMat(tienMat);
-        p.setTienCK(tienCK);
-        p.setTienChenhLech(tienChenhLech);
-
-        p.setNgayKetCaFromDB(ngayKetCa);
-        p.setTgLogIn(tgLogIn);
-
-        p.setMoTa(moTa);
-
-        return p;
-
+    private static boolean toBool(Object val) {
+        if (val == null) return false;
+        if (val instanceof Boolean) return (Boolean) val;
+        return ((Number) val).intValue() != 0;
     }
 
-    // ============================================
-    // GET ALL
-    // ============================================
+    private static LocalDateTime toDateTime(Object val) {
+        if (val instanceof Timestamp ts) return ts.toLocalDateTime();
+        if (val instanceof LocalDateTime ldt) return ldt;
+        return null;
+    }
+
+    private static PhieuKetCa mapRow(Tuple t) {
+        PhieuKetCa p = new PhieuKetCa();
+        p.setMaPhieu(t.get("maPhieu", String.class));
+        p.setCa(toBool(t.get("ca")));
+        p.setSoHoaDon(t.get("soHoaDon") != null ? ((Number) t.get("soHoaDon")).intValue() : 0);
+        p.setTienMat(t.get("tienMat") != null ? ((Number) t.get("tienMat")).doubleValue() : 0);
+        p.setTienCK(t.get("tienCK") != null ? ((Number) t.get("tienCK")).doubleValue() : 0);
+        p.setTienChenhLech(t.get("tienChenhLech") != null ? ((Number) t.get("tienChenhLech")).doubleValue() : 0);
+        p.setNgayKetCaFromDB(toDateTime(t.get("ngayKetCa")));
+        p.setMoTa(t.get("moTa", String.class));
+        p.setTgLogIn(toDateTime(t.get("tgLogIn")));
+        NhanVien nv = NhanVienDAO.getByID(t.get("maNV", String.class));
+        p.setNhanVien(nv);
+        return p;
+    }
+
     public static List<PhieuKetCa> getAll() {
         List<PhieuKetCa> ds = new ArrayList<>();
-        String sql = "SELECT * FROM PhieuKetCa ORDER BY maPhieu DESC";
-
-        try (Connection con = connectDB.getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            while (rs.next()) ds.add(map(rs));
-
-        } catch (SQLException e) {
-            System.err.println("PhieuKetCaDAO.getAll(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery("SELECT maPhieu, maNV, ca, soHoaDon, tienMat, tienCK, tienChenhLech, ngayKetCa, moTa, tgLogIn FROM PhieuKetCa ORDER BY maPhieu DESC", Tuple.class).getResultList();
+            for (Tuple t : rows) ds.add(mapRow(t));
+        } catch (Exception e) { System.err.println("PhieuKetCaDAO.getAll(): " + e.getMessage()); }
         return ds;
     }
 
     public static List<PhieuKetCa> getAllForTraCuu() {
-
         List<PhieuKetCa> ds = new ArrayList<>();
-
-        String sql = """
-        SELECT p.*, n.tenNV,n.sdt
-        FROM PhieuKetCa p
-        JOIN NhanVien n ON p.maNV = n.maNV
-        ORDER BY p.maPhieu DESC
-    """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-
+        String sql = "SELECT p.maPhieu, p.maNV, p.ca, p.soHoaDon, p.tienMat, p.tienCK, p.tienChenhLech, p.ngayKetCa, p.moTa, p.tgLogIn, n.tenNV, n.sdt " +
+                     "FROM PhieuKetCa p JOIN NhanVien n ON p.maNV = n.maNV ORDER BY p.maPhieu DESC";
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(sql, Tuple.class).getResultList();
+            for (Tuple t : rows) {
                 PhieuKetCa p = new PhieuKetCa();
-
-                p.setMaPhieu(rs.getString("maPhieu"));
-                p.setCa(rs.getBoolean("ca"));
-                p.setSoHoaDon(rs.getInt("soHoaDon"));
-                p.setTienMat(rs.getDouble("tienMat"));
-                p.setTienCK(rs.getDouble("tienCK"));
-                p.setTienChenhLech(rs.getDouble("tienChenhLech"));
-
-                Timestamp ts = rs.getTimestamp("ngayKetCa");
-                p.setNgayKetCaFromDB(ts != null ? ts.toLocalDateTime() : null);
-
-                Timestamp lg = rs.getTimestamp("tgLogIn");
-                p.setTgLogIn(lg != null ? lg.toLocalDateTime() : null);
-
-                p.setMoTa(rs.getString("moTa"));
-
-                // ===== Nhân viên
+                p.setMaPhieu(t.get("maPhieu", String.class));
+                p.setCa(toBool(t.get("ca")));
+                p.setSoHoaDon(t.get("soHoaDon") != null ? ((Number) t.get("soHoaDon")).intValue() : 0);
+                p.setTienMat(t.get("tienMat") != null ? ((Number) t.get("tienMat")).doubleValue() : 0);
+                p.setTienCK(t.get("tienCK") != null ? ((Number) t.get("tienCK")).doubleValue() : 0);
+                p.setTienChenhLech(t.get("tienChenhLech") != null ? ((Number) t.get("tienChenhLech")).doubleValue() : 0);
+                p.setNgayKetCaFromDB(toDateTime(t.get("ngayKetCa")));
+                p.setMoTa(t.get("moTa", String.class));
+                p.setTgLogIn(toDateTime(t.get("tgLogIn")));
                 NhanVien nv = new NhanVien();
-                nv.setMaNV(rs.getString("maNV"));
-                nv.setTenNV(rs.getString("tenNV"));
-                nv.setSdt(rs.getString("sdt"));
-
+                nv.setMaNV(t.get("maNV", String.class));
+                nv.setTenNV(t.get("tenNV", String.class));
+                nv.setSdt(t.get("sdt", String.class));
                 p.setNhanVien(nv);
-
                 ds.add(p);
             }
-
-        } catch (SQLException e) {
-            System.err.println("PhieuKetCaDAO.getAll(): " + e.getMessage());
-        }
-
+        } catch (Exception e) { System.err.println("PhieuKetCaDAO.getAllForTraCuu(): " + e.getMessage()); }
         return ds;
     }
 
-
-    // ============================================
-    // INSERT
-    // ============================================
     public boolean insert(PhieuKetCa phieu) {
-        String sql = """
-            INSERT INTO PhieuKetCa
-            (maPhieu, maNV, ca, soHoaDon, tienMat, tienCK, tienChenhLech, ngayKetCa, moTa,tgLogIn)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, phieu.getMaPhieu());
-            ps.setString(2, phieu.getNhanVien().getMaNV());
-            ps.setBoolean(3, phieu.isCa());
-            ps.setInt(4, phieu.getSoHoaDon());
-            ps.setDouble(5, phieu.getTienMat());
-            ps.setDouble(6, phieu.getTienCK());
-            ps.setDouble(7, phieu.getTienChenhLech());
-
-            ps.setTimestamp(8,
-                    phieu.getNgayKetCa() != null
-                            ? Timestamp.valueOf(phieu.getNgayKetCa())
-                            : null
-            );
-
-            ps.setString(9, phieu.getMoTa());
-            ps.setTimestamp(10,
-                    phieu.getTgLogIn() != null
-                            ? Timestamp.valueOf(phieu.getTgLogIn())
-                            : null
-            );
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("PhieuKetCaDAO.insert(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            em.createNativeQuery("INSERT INTO PhieuKetCa(maPhieu, maNV, ca, soHoaDon, tienMat, tienCK, tienChenhLech, ngayKetCa, moTa, tgLogIn) VALUES (:ma, :nv, :ca, :sohd, :tm, :tck, :tcl, :ngay, :mo, :login)")
+                .setParameter("ma", phieu.getMaPhieu()).setParameter("nv", phieu.getNhanVien().getMaNV())
+                .setParameter("ca", phieu.isCa()).setParameter("sohd", phieu.getSoHoaDon())
+                .setParameter("tm", phieu.getTienMat()).setParameter("tck", phieu.getTienCK())
+                .setParameter("tcl", phieu.getTienChenhLech())
+                .setParameter("ngay", phieu.getNgayKetCa() != null ? Timestamp.valueOf(phieu.getNgayKetCa()) : null)
+                .setParameter("mo", phieu.getMoTa())
+                .setParameter("login", phieu.getTgLogIn() != null ? Timestamp.valueOf(phieu.getTgLogIn()) : null).executeUpdate();
+            tx.commit(); return true;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("PhieuKetCaDAO.insert(): " + e.getMessage()); return false; }
     }
 
-    // ============================================
-    // GET MAX MA PHIEU
-    // ============================================
     public String getMaxMaPhieu() {
-        String sql = "SELECT TOP 1 maPhieu FROM PhieuKetCa ORDER BY maPhieu DESC";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            if (rs.next()) return rs.getString("maPhieu");
-
-        } catch (SQLException e) {
-            System.err.println("PhieuKetCaDAO.getMaxMaPhieu(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            List<?> r = em.createNativeQuery("SELECT maPhieu FROM PhieuKetCa ORDER BY maPhieu DESC LIMIT 1").getResultList();
+            if (!r.isEmpty()) return (String) r.get(0);
+        } catch (Exception e) { System.err.println("PhieuKetCaDAO.getMaxMaPhieu(): " + e.getMessage()); }
         return null;
     }
 
-    // ============================================
-    // PHÁT SINH MÃ
-    // ============================================
     public String generateNewMaPhieu() {
         String max = getMaxMaPhieu();
-
         int next = 1;
-        if (max != null && max.startsWith("MP")) {
-            next = Integer.parseInt(max.substring(2)) + 1;
-        }
-
+        if (max != null && max.startsWith("MP")) next = Integer.parseInt(max.substring(2)) + 1;
         return String.format("MP%04d", next);
     }
 
     public static String getMaPhieuKCCuoiTheoNgay(String ca, String ngay) {
         String prefix = "MP" + ca + ngay;
-
-        String sql = """
-        SELECT TOP 1 maPhieu
-        FROM PhieuKetCa
-        WHERE maPhieu LIKE ?
-        ORDER BY maPhieu DESC
-    """;
-
-        try (Connection conn = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, prefix + "%");
-
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getString("maPhieu");
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi getMaPhieuKCCuoiTheoNgay: " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            List<?> r = em.createNativeQuery("SELECT maPhieu FROM PhieuKetCa WHERE maPhieu LIKE :p ORDER BY maPhieu DESC LIMIT 1")
+                .setParameter("p", prefix + "%").getResultList();
+            if (!r.isEmpty()) return (String) r.get(0);
+        } catch (Exception e) { System.err.println("Lỗi getMaPhieuKCCuoiTheoNgay: " + e.getMessage()); }
         return null;
     }
-
 }

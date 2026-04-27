@@ -1,222 +1,111 @@
 package dao;
 
-import connectDB.connectDB;
 import entity.Coc;
 import entity.KhuVuc;
 import entity.LoaiBan;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Tuple;
 
-import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CocDAO {
 
-    // ==============================
-    // HÀM MAP OBJECT
-    // ==============================
-    private Coc mapCoc(ResultSet rs) throws SQLException {
+    private static EntityManager em() { return JpaConfig.getEntityManagerFactory().createEntityManager(); }
 
+    private static boolean toBool(Object val) {
+        if (val == null) return false;
+        if (val instanceof Boolean) return (Boolean) val;
+        return ((Number) val).intValue() != 0;
+    }
+
+    private Coc mapRow(Tuple t) {
         Coc c = new Coc();
-        c.setMaCoc(rs.getString("maCoc"));
-        c.setLoaiCoc(rs.getBoolean("loaiCoc"));
-
+        c.setMaCoc(t.get("maCoc", String.class));
+        c.setLoaiCoc(toBool(t.get("loaiCoc")));
         if (c.isLoaiCoc()) {
-            c.setPhanTramCoc(rs.getInt("phanTramCoc"));
+            c.setPhanTramCoc(t.get("phanTramCoc") != null ? ((Number) t.get("phanTramCoc")).intValue() : 0);
             c.setSoTienCoc(0);
         } else {
-            c.setSoTienCoc(rs.getDouble("soTienCoc"));
+            c.setSoTienCoc(t.get("soTienCoc") != null ? ((Number) t.get("soTienCoc")).doubleValue() : 0);
             c.setPhanTramCoc(0);
         }
-
-        // MAP KHU VỰC
-        if (rs.getString("maKhuVuc") != null) {
-            KhuVuc kv = new KhuVuc(
-                    rs.getString("maKhuVuc"),
-                    rs.getString("tenKhuVuc")
-            );
-            c.setKhuVuc(kv);
-        }
-
-        // MAP LOẠI BÀN
-        if (rs.getString("maLoaiBan") != null) {
-            LoaiBan lb = new LoaiBan(
-                    rs.getString("maLoaiBan"),
-                    rs.getInt("soLuong"),
-                    rs.getString("tenLoaiBan")
-            );
-            c.setLoaiBan(lb);
-        }
-
+        String maKV = t.get("maKhuVuc", String.class);
+        if (maKV != null) c.setKhuVuc(new KhuVuc(maKV, t.get("tenKhuVuc", String.class)));
+        String maLB = t.get("maLoaiBan", String.class);
+        if (maLB != null) c.setLoaiBan(new LoaiBan(maLB, t.get("soLuong") != null ? ((Number) t.get("soLuong")).intValue() : 0, t.get("tenLoaiBan", String.class)));
         return c;
     }
 
-    // ==============================
-    // GET ALL – JOIN FULL
-    // ==============================
+    private static final String SELECT =
+        "SELECT c.maCoc, c.loaiCoc, c.phanTramCoc, c.soTienCoc, " +
+        "c.maKhuVuc, kv.tenKhuVuc, c.maLoaiBan, lb.soLuong, lb.tenLoaiBan " +
+        "FROM Coc c LEFT JOIN KhuVuc kv ON c.maKhuVuc = kv.maKhuVuc LEFT JOIN LoaiBan lb ON c.maLoaiBan = lb.maLoaiBan";
+
     public List<Coc> getAll() {
         List<Coc> list = new ArrayList<>();
-
-        String sql = """
-            SELECT c.*, 
-                   kv.tenKhuVuc,
-                   lb.tenLoaiBan, lb.soLuong
-            FROM Coc c
-            LEFT JOIN KhuVuc kv ON c.maKhuVuc = kv.maKhuVuc
-            LEFT JOIN LoaiBan lb ON c.maLoaiBan = lb.maLoaiBan
-            ORDER BY c.maCoc
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            while (rs.next()) list.add(mapCoc(rs));
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
+        try (EntityManager em = em()) {
+            @SuppressWarnings("unchecked")
+            List<Tuple> rows = em.createNativeQuery(SELECT + " ORDER BY c.maCoc", Tuple.class).getResultList();
+            for (Tuple t : rows) list.add(mapRow(t));
+        } catch (Exception e) { e.printStackTrace(); }
         return list;
     }
 
-    // ==============================
-    // GET LATEST
-    // ==============================
     public Coc getLatest() {
-
-        String sql = """
-            SELECT TOP 1 c.*, 
-                   kv.tenKhuVuc,
-                   lb.tenLoaiBan, lb.soLuong
-            FROM Coc c
-            LEFT JOIN KhuVuc kv ON c.maKhuVuc = kv.maKhuVuc
-            LEFT JOIN LoaiBan lb ON c.maLoaiBan = lb.maLoaiBan
-            ORDER BY c.maCoc DESC
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            if (rs.next()) return mapCoc(rs);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(SELECT + " ORDER BY c.maCoc DESC LIMIT 1", Tuple.class).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) { e.printStackTrace(); }
         return null;
     }
 
-    // ==============================
-    // INSERT
-    // ==============================
     public boolean insert(Coc coc) {
-
-        String sql = """
-            INSERT INTO Coc(maCoc, loaiCoc, phanTramCoc, soTienCoc, maKhuVuc, maLoaiBan)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, coc.getMaCoc());
-            ps.setBoolean(2, coc.isLoaiCoc());
-            ps.setInt(3, coc.isLoaiCoc() ? coc.getPhanTramCoc() : 0);
-            ps.setDouble(4, coc.isLoaiCoc() ? 0 : coc.getSoTienCoc());
-            ps.setString(5, coc.getKhuVuc() != null ? coc.getKhuVuc().getMaKhuVuc() : null);
-            ps.setString(6, coc.getLoaiBan() != null ? coc.getLoaiBan().getMaLoaiBan() : null);
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            em.createNativeQuery("INSERT INTO Coc(maCoc, loaiCoc, phanTramCoc, soTienCoc, maKhuVuc, maLoaiBan) VALUES (:ma, :loai, :ptc, :stc, :kv, :lb)")
+                .setParameter("ma", coc.getMaCoc()).setParameter("loai", coc.isLoaiCoc())
+                .setParameter("ptc", coc.isLoaiCoc() ? coc.getPhanTramCoc() : 0)
+                .setParameter("stc", coc.isLoaiCoc() ? 0 : coc.getSoTienCoc())
+                .setParameter("kv", coc.getKhuVuc() != null ? coc.getKhuVuc().getMaKhuVuc() : null)
+                .setParameter("lb", coc.getLoaiBan() != null ? coc.getLoaiBan().getMaLoaiBan() : null).executeUpdate();
+            tx.commit(); return true;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); e.printStackTrace(); return false; }
     }
 
-    // ==============================
-    // UPDATE
-    // ==============================
     public boolean update(Coc coc) {
-
-        String sql = """
-            UPDATE Coc
-            SET loaiCoc = ?, 
-                phanTramCoc = ?, 
-                soTienCoc = ?, 
-                maKhuVuc = ?, 
-                maLoaiBan = ?
-            WHERE maCoc = ?
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setBoolean(1, coc.isLoaiCoc());
-            ps.setInt(2, coc.isLoaiCoc() ? coc.getPhanTramCoc() : 0);
-            ps.setDouble(3, coc.isLoaiCoc() ? 0 : coc.getSoTienCoc());
-            ps.setString(4, coc.getKhuVuc() != null ? coc.getKhuVuc().getMaKhuVuc() : null);
-            ps.setString(5, coc.getLoaiBan() != null ? coc.getLoaiBan().getMaLoaiBan() : null);
-            ps.setString(6, coc.getMaCoc());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("UPDATE Coc SET loaiCoc=:loai, phanTramCoc=:ptc, soTienCoc=:stc, maKhuVuc=:kv, maLoaiBan=:lb WHERE maCoc=:ma")
+                .setParameter("loai", coc.isLoaiCoc())
+                .setParameter("ptc", coc.isLoaiCoc() ? coc.getPhanTramCoc() : 0)
+                .setParameter("stc", coc.isLoaiCoc() ? 0 : coc.getSoTienCoc())
+                .setParameter("kv", coc.getKhuVuc() != null ? coc.getKhuVuc().getMaKhuVuc() : null)
+                .setParameter("lb", coc.getLoaiBan() != null ? coc.getLoaiBan().getMaLoaiBan() : null)
+                .setParameter("ma", coc.getMaCoc()).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); e.printStackTrace(); return false; }
     }
 
-    // ==============================
-    // GET BY KV + LOẠI BÀN
-    // ==============================
     public static Coc getByKhuVucVaLoaiBan(String maKV, String maLB) {
-
-        String sql = """
-            SELECT c.*, 
-                   kv.tenKhuVuc,
-                   lb.tenLoaiBan, lb.soLuong
-            FROM Coc c
-            LEFT JOIN KhuVuc kv ON c.maKhuVuc = kv.maKhuVuc
-            LEFT JOIN LoaiBan lb ON c.maLoaiBan = lb.maLoaiBan
-            WHERE c.maKhuVuc = ? AND c.maLoaiBan = ?
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maKV);
-            ps.setString(2, maLB);
-
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                CocDAO dao = new CocDAO();
-                return dao.mapCoc(rs);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(SELECT + " WHERE c.maKhuVuc=:kv AND c.maLoaiBan=:lb", Tuple.class)
+                .setParameter("kv", maKV).setParameter("lb", maLB).getResultList();
+            if (!rows.isEmpty()) return new CocDAO().mapRow(rows.get(0));
+        } catch (Exception e) { e.printStackTrace(); }
         return null;
     }
-    // ==============================
-    // DELETE
-    // ==============================
+
     public boolean delete(String maCoc) {
-        String sql = "DELETE FROM Coc WHERE maCoc = ?";
-
-        try (Connection con = connectDB.getConnection();
-            PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maCoc);
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("DELETE FROM Coc WHERE maCoc=:ma").setParameter("ma", maCoc).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); e.printStackTrace(); return false; }
     }
 }

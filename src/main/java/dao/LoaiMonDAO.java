@@ -1,144 +1,75 @@
 package dao;
 
-import connectDB.connectDB;
 import entity.LoaiMon;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Tuple;
 
-import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class LoaiMonDAO {
 
-    // ==============================
-    // MAP OBJECT
-    // ==============================
-    private static LoaiMon map(ResultSet rs) throws SQLException {
-        return new LoaiMon(
-                rs.getString("maLoaiMon"),
-                rs.getString("tenLoaiMon"),
-                rs.getString("moTa")
-        );
+    private static EntityManager em() { return JpaConfig.getEntityManagerFactory().createEntityManager(); }
+
+    private static LoaiMon mapRow(Tuple t) {
+        return new LoaiMon(t.get("maLoaiMon", String.class), t.get("tenLoaiMon", String.class), t.get("moTa", String.class));
     }
 
-    // ==============================
-    // GET ALL
-    // ==============================
     public static List<LoaiMon> getAll() {
         List<LoaiMon> ds = new ArrayList<>();
-        String sql = "SELECT * FROM LoaiMon ORDER BY maLoaiMon";
-
-        try (Connection con = connectDB.getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            while (rs.next()) ds.add(map(rs));
-
-        } catch (SQLException e) {
-            System.err.println("LoaiMonDAO.getAll(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            @SuppressWarnings("unchecked")
+            List<Tuple> rows = em.createNativeQuery("SELECT maLoaiMon, tenLoaiMon, moTa FROM LoaiMon ORDER BY maLoaiMon", Tuple.class).getResultList();
+            for (Tuple t : rows) ds.add(mapRow(t));
+        } catch (Exception e) { System.err.println("LoaiMonDAO.getAll(): " + e.getMessage()); }
         return ds;
     }
 
-    // ==============================
-    // GET BY ID
-    // ==============================
     public static LoaiMon getByID(String maLoaiMon) {
-        String sql = "SELECT * FROM LoaiMon WHERE maLoaiMon = ?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maLoaiMon);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) return map(rs);
-
-        } catch (SQLException e) {
-            System.err.println("LoaiMonDAO.getByID(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery("SELECT maLoaiMon, tenLoaiMon, moTa FROM LoaiMon WHERE maLoaiMon=:ma", Tuple.class)
+                .setParameter("ma", maLoaiMon).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) { System.err.println("LoaiMonDAO.getByID(): " + e.getMessage()); }
         return null;
     }
 
-    // ==============================
-    // GET MA LOAI MON BY TEN
-    // ==============================
     public static String getMaLoaiMonByTen(String tenLoaiMon) {
-        String sql = "SELECT maLoaiMon FROM LoaiMon WHERE tenLoaiMon = ?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, tenLoaiMon);
-
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) return rs.getString("maLoaiMon");
-
-        } catch (SQLException e) {
-            System.err.println("LoaiMonDAO.getMaLoaiMonByTen(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            List<?> rows = em.createNativeQuery("SELECT maLoaiMon FROM LoaiMon WHERE tenLoaiMon=:ten").setParameter("ten", tenLoaiMon).getResultList();
+            if (!rows.isEmpty()) return (String) rows.get(0);
+        } catch (Exception e) { System.err.println("LoaiMonDAO.getMaLoaiMonByTen(): " + e.getMessage()); }
         return null;
     }
 
-    // ==============================
-    // INSERT
-    // ==============================
     public boolean insert(LoaiMon loaiMon) {
-        String sql = "INSERT INTO LoaiMon(maLoaiMon, tenLoaiMon, moTa) VALUES (?, ?, ?)";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, loaiMon.getMaLoaiMon());
-            ps.setString(2, loaiMon.getTenLoaiMon());
-            ps.setString(3, loaiMon.getMoTa());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("LoaiMonDAO.insert(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            em.createNativeQuery("INSERT INTO LoaiMon(maLoaiMon, tenLoaiMon, moTa) VALUES (:ma, :ten, :mo)")
+                .setParameter("ma", loaiMon.getMaLoaiMon()).setParameter("ten", loaiMon.getTenLoaiMon()).setParameter("mo", loaiMon.getMoTa()).executeUpdate();
+            tx.commit(); return true;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("LoaiMonDAO.insert(): " + e.getMessage()); return false; }
     }
 
-    // ==============================
-    // UPDATE
-    // ==============================
     public boolean update(LoaiMon loaiMon) {
-        String sql = "UPDATE LoaiMon SET tenLoaiMon=?, moTa=? WHERE maLoaiMon=?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, loaiMon.getTenLoaiMon());
-            ps.setString(2, loaiMon.getMoTa());
-            ps.setString(3, loaiMon.getMaLoaiMon());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("LoaiMonDAO.update(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("UPDATE LoaiMon SET tenLoaiMon=:ten, moTa=:mo WHERE maLoaiMon=:ma")
+                .setParameter("ten", loaiMon.getTenLoaiMon()).setParameter("mo", loaiMon.getMoTa()).setParameter("ma", loaiMon.getMaLoaiMon()).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("LoaiMonDAO.update(): " + e.getMessage()); return false; }
     }
 
-    // ==============================
-    // DELETE
-    // ==============================
     public boolean delete(String maLoaiMon) {
-        String sql = "DELETE FROM LoaiMon WHERE maLoaiMon=?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maLoaiMon);
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("LoaiMonDAO.delete(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("DELETE FROM LoaiMon WHERE maLoaiMon=:ma").setParameter("ma", maLoaiMon).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("LoaiMonDAO.delete(): " + e.getMessage()); return false; }
     }
 }

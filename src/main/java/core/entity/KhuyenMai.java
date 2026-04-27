@@ -35,7 +35,7 @@ public class KhuyenMai {
     @Column(name = "ngayKetThuc")
     private java.time.LocalDate ngayKetThuc;
 
-    @Column(name = "maThayThe", length = 6)
+    @Column(name = "maThayThe", columnDefinition = "NVARCHAR(200)")
     private String maThayThe;
 
     /** Percentage discount OR fixed amount (depending on uuDai flag). */
@@ -43,7 +43,7 @@ public class KhuyenMai {
     private int phanTramGiamGia;
 
     /**
-     * true  = fixed money discount (VND amount).<br>
+     * true = fixed money discount (VND amount).<br>
      * false = percentage discount.
      */
     @Column(name = "uuDai")

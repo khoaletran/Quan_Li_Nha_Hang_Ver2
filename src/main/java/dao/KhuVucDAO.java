@@ -1,141 +1,76 @@
 package dao;
 
-import connectDB.connectDB;
 import entity.KhuVuc;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Tuple;
 
-import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class KhuVucDAO {
 
-    // ==============================
-    // MAP OBJECT
-    // ==============================
-    private static KhuVuc map(ResultSet rs) throws SQLException {
-        return new KhuVuc(
-                rs.getString("maKhuVuc"),
-                rs.getString("tenKhuVuc")
-        );
+    private static EntityManager em() { return JpaConfig.getEntityManagerFactory().createEntityManager(); }
+
+    private static KhuVuc mapRow(Tuple t) {
+        return new KhuVuc(t.get("maKhuVuc", String.class), t.get("tenKhuVuc", String.class));
     }
 
-    // ==============================
-    // GET ALL
-    // ==============================
     public static List<KhuVuc> getAll() {
         List<KhuVuc> ds = new ArrayList<>();
-        String sql = "SELECT * FROM KhuVuc ORDER BY maKhuVuc";
-
-        try (Connection con = connectDB.getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            while (rs.next()) ds.add(map(rs));
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi KhuVucDAO.getAll(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            @SuppressWarnings("unchecked")
+            List<Tuple> rows = em.createNativeQuery("SELECT maKhuVuc, tenKhuVuc FROM KhuVuc ORDER BY maKhuVuc", Tuple.class).getResultList();
+            for (Tuple t : rows) ds.add(mapRow(t));
+        } catch (Exception e) { System.err.println("Lỗi KhuVucDAO.getAll(): " + e.getMessage()); }
         return ds;
     }
 
-    // ==============================
-    // GET BY ID
-    // ==============================
     public static KhuVuc getById(String maKhuVuc) {
-        String sql = "SELECT * FROM KhuVuc WHERE maKhuVuc = ?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maKhuVuc);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) return map(rs);
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi KhuVucDAO.getById(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery("SELECT maKhuVuc, tenKhuVuc FROM KhuVuc WHERE maKhuVuc=:id", Tuple.class)
+                .setParameter("id", maKhuVuc).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) { System.err.println("Lỗi KhuVucDAO.getById(): " + e.getMessage()); }
         return null;
     }
 
-    // ==============================
-    // GET BY NAME
-    // ==============================
     public static KhuVuc getByName(String tenKhuVuc) {
-        String sql = "SELECT * FROM KhuVuc WHERE tenKhuVuc = ?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, tenKhuVuc);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) return map(rs);
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi KhuVucDAO.getByName(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery("SELECT maKhuVuc, tenKhuVuc FROM KhuVuc WHERE tenKhuVuc=:ten", Tuple.class)
+                .setParameter("ten", tenKhuVuc).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) { System.err.println("Lỗi KhuVucDAO.getByName(): " + e.getMessage()); }
         return null;
     }
 
-    // ==============================
-    // INSERT
-    // ==============================
     public boolean insert(KhuVuc kv) {
-        String sql = "INSERT INTO KhuVuc(maKhuVuc, tenKhuVuc) VALUES (?, ?)";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, kv.getMaKhuVuc());
-            ps.setString(2, kv.getTenKhuVuc());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi KhuVucDAO.insert(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            em.createNativeQuery("INSERT INTO KhuVuc(maKhuVuc, tenKhuVuc) VALUES (:ma, :ten)")
+                .setParameter("ma", kv.getMaKhuVuc()).setParameter("ten", kv.getTenKhuVuc()).executeUpdate();
+            tx.commit(); return true;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("Lỗi KhuVucDAO.insert(): " + e.getMessage()); return false; }
     }
 
-    // ==============================
-    // UPDATE
-    // ==============================
     public boolean update(KhuVuc kv) {
-        String sql = "UPDATE KhuVuc SET tenKhuVuc = ? WHERE maKhuVuc = ?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, kv.getTenKhuVuc());
-            ps.setString(2, kv.getMaKhuVuc());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi KhuVucDAO.update(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("UPDATE KhuVuc SET tenKhuVuc=:ten WHERE maKhuVuc=:ma")
+                .setParameter("ten", kv.getTenKhuVuc()).setParameter("ma", kv.getMaKhuVuc()).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("Lỗi KhuVucDAO.update(): " + e.getMessage()); return false; }
     }
 
-    // ==============================
-    // DELETE
-    // ==============================
     public boolean delete(String maKhuVuc) {
-        String sql = "DELETE FROM KhuVuc WHERE maKhuVuc = ?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maKhuVuc);
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi KhuVucDAO.delete(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("DELETE FROM KhuVuc WHERE maKhuVuc=:ma").setParameter("ma", maKhuVuc).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("Lỗi KhuVucDAO.delete(): " + e.getMessage()); return false; }
     }
 }

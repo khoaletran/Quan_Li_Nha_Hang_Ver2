@@ -1,401 +1,172 @@
 package dao;
 
-import connectDB.connectDB;
 import entity.Ban;
 import entity.KhuVuc;
 import entity.LoaiBan;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Tuple;
 
-import java.sql.*;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class BanDAO {
 
-    // ==============================
-    // HÀM TẠO ĐỐI TƯỢNG TỪ RESULTSET
-    // ==============================
-    private static Ban mapBan(ResultSet rs) throws SQLException {
-
-        LoaiBan loaiBan = new LoaiBan(
-                rs.getString("maLoaiBan"),
-                rs.getInt("soLuong"),
-                rs.getString("tenLoaiBan")
-        );
-
-        KhuVuc khuVuc = new KhuVuc(
-                rs.getString("maKhuVuc"),
-                rs.getString("tenKhuVuc")
-        );
-
-        return new Ban(
-                rs.getString("maBan"),
-                khuVuc,
-                loaiBan,
-                rs.getBoolean("trangThai")
-        );
+    private static EntityManager em() {
+        return JpaConfig.getEntityManagerFactory().createEntityManager();
     }
 
-    // ==============================
-    // GET ALL
-    // ==============================
+    private static boolean toBool(Object val) {
+        if (val == null) return false;
+        if (val instanceof Boolean) return (Boolean) val;
+        return ((Number) val).intValue() != 0;
+    }
+
+    private static Ban mapRow(Tuple t) {
+        LoaiBan loaiBan = new LoaiBan(t.get("maLoaiBan", String.class), ((Number) t.get("soLuong")).intValue(), t.get("tenLoaiBan", String.class));
+        KhuVuc khuVuc = new KhuVuc(t.get("maKhuVuc", String.class), t.get("tenKhuVuc", String.class));
+        return new Ban(t.get("maBan", String.class), khuVuc, loaiBan, toBool(t.get("trangThai")));
+    }
+
+    private static final String SELECT_JOIN =
+        "SELECT b.maBan, b.trangThai, lb.maLoaiBan, lb.soLuong, lb.tenLoaiBan, kv.maKhuVuc, kv.tenKhuVuc " +
+        "FROM Ban b JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan JOIN KhuVuc kv ON b.maKhuVuc = kv.maKhuVuc";
+
     public static List<Ban> getAll() {
         List<Ban> ds = new ArrayList<>();
-
-        String sql = """
-            SELECT b.maBan, b.trangThai,
-                   lb.maLoaiBan, lb.tenLoaiBan, lb.soLuong,
-                   kv.maKhuVuc, kv.tenKhuVuc
-            FROM Ban b
-            JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan
-            JOIN KhuVuc kv ON b.maKhuVuc = kv.maKhuVuc
-            ORDER BY b.maBan
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            while (rs.next()) {
-                ds.add(mapBan(rs));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(SELECT_JOIN + " ORDER BY b.maBan", Tuple.class).getResultList();
+            for (Tuple t : rows) ds.add(mapRow(t));
+        } catch (Exception e) { e.printStackTrace(); }
         return ds;
     }
 
-    // ==============================
-    // INSERT
-    // ==============================
     public boolean insert(Ban ban, boolean trangThai) {
-        String sql = """
-            INSERT INTO Ban (maBan, trangThai, maLoaiBan, maKhuVuc)
-            VALUES (?, ?, ?, ?)
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, ban.getMaBan());
-            ps.setBoolean(2, trangThai);
-            ps.setString(3, ban.getLoaiBan().getMaLoaiBan());
-            ps.setString(4, ban.getKhuVuc().getMaKhuVuc());
-
-            return ps.executeUpdate() > 0;
-
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            em.createNativeQuery("INSERT INTO Ban(maBan, trangThai, maLoaiBan, maKhuVuc) VALUES (:ma, :tt, :lb, :kv)")
+                .setParameter("ma", ban.getMaBan()).setParameter("tt", trangThai)
+                .setParameter("lb", ban.getLoaiBan().getMaLoaiBan()).setParameter("kv", ban.getKhuVuc().getMaKhuVuc()).executeUpdate();
+            tx.commit(); return true;
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            if (tx != null && tx.isActive()) tx.rollback();
+            e.printStackTrace(); return false;
         }
     }
 
-    // ==============================
-    // UPDATE
-    // ==============================
     public static boolean update(Ban ban, boolean trangThai) {
-        String sql = """
-            UPDATE Ban 
-            SET trangThai = ?, maLoaiBan = ?, maKhuVuc = ? 
-            WHERE maBan = ?
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setBoolean(1, trangThai);
-            ps.setString(2, ban.getLoaiBan().getMaLoaiBan());
-            ps.setString(3, ban.getKhuVuc().getMaKhuVuc());
-            ps.setString(4, ban.getMaBan());
-
-            return ps.executeUpdate() > 0;
-
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("UPDATE Ban SET trangThai=:tt, maLoaiBan=:lb, maKhuVuc=:kv WHERE maBan=:ma")
+                .setParameter("tt", trangThai).setParameter("lb", ban.getLoaiBan().getMaLoaiBan())
+                .setParameter("kv", ban.getKhuVuc().getMaKhuVuc()).setParameter("ma", ban.getMaBan()).executeUpdate();
+            tx.commit(); return r > 0;
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            if (tx != null && tx.isActive()) tx.rollback();
+            e.printStackTrace(); return false;
         }
     }
 
-    // ==============================
-    // DELETE
-    // ==============================
     public static boolean delete(String maBan) {
-        String sql = "DELETE FROM Ban WHERE maBan = ?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maBan);
-            return ps.executeUpdate() > 0;
-
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("DELETE FROM Ban WHERE maBan=:ma").setParameter("ma", maBan).executeUpdate();
+            tx.commit(); return r > 0;
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            if (tx != null && tx.isActive()) tx.rollback();
+            e.printStackTrace(); return false;
         }
     }
 
-    // ==============================
-    // GET BY ID (JOIN – KHÔNG DAO CON)
-    // ==============================
     public static Ban getByID(String maBan) {
-        String sql = """
-            SELECT b.maBan, b.trangThai,
-                   lb.maLoaiBan, lb.tenLoaiBan, lb.soLuong,
-                   kv.maKhuVuc, kv.tenKhuVuc
-            FROM Ban b
-            JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan
-            JOIN KhuVuc kv ON b.maKhuVuc = kv.maKhuVuc
-            WHERE b.maBan = ?
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maBan);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) return mapBan(rs);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(SELECT_JOIN + " WHERE b.maBan=:ma", Tuple.class).setParameter("ma", maBan).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) { e.printStackTrace(); }
         return null;
     }
 
-    // ==============================
-    // GET TẤT CẢ BÀN TRỐNG
-    // ==============================
     public static List<Ban> getAllTrong() {
         List<Ban> list = new ArrayList<>();
-
-        String sql = """
-            SELECT b.maBan, b.trangThai,
-                   lb.maLoaiBan, lb.tenLoaiBan, lb.soLuong,
-                   kv.maKhuVuc, kv.tenKhuVuc
-            FROM Ban b
-            JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan
-            JOIN KhuVuc kv ON b.maKhuVuc = kv.maKhuVuc
-            WHERE b.trangThai = 0
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                list.add(mapBan(rs));
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(SELECT_JOIN + " WHERE b.trangThai = 0", Tuple.class).getResultList();
+            for (Tuple t : rows) list.add(mapRow(t));
+        } catch (Exception e) { e.printStackTrace(); }
         return list;
     }
 
-    // ==============================
-    // TẠO MÃ BÀN THEO KHU VỰC
-    // ==============================
     public String taoMaBanChoTheoKhuVuc(KhuVuc khuVuc) {
-        String prefix;
-
-        switch (khuVuc.getMaKhuVuc()) {
-            case "KV0001": prefix = "WO"; break;
-            case "KV0002": prefix = "WI"; break;
-            case "KV0003": prefix = "WV"; break;
-            default: prefix = "WX"; break;
-        }
-
-        String sql = """
-            SELECT TOP 1 maBan
-            FROM Ban
-            WHERE maBan LIKE ?
-            ORDER BY maBan DESC
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, prefix + "%");
-
-            ResultSet rs = ps.executeQuery();
-
+        String prefix = switch (khuVuc.getMaKhuVuc()) {
+            case "KV0001" -> "WO"; case "KV0002" -> "WI"; case "KV0003" -> "WV"; default -> "WX";
+        };
+        try (EntityManager em = em()) {
+            List<?> r = em.createNativeQuery("SELECT maBan FROM Ban WHERE maBan LIKE :p ORDER BY maBan DESC LIMIT 1")
+                .setParameter("p", prefix + "%").getResultList();
             int nextId = 1;
-
-            if (rs.next()) {
-                String lastId = rs.getString("maBan");
-                nextId = Integer.parseInt(lastId.substring(2)) + 1;
-            }
-
+            if (!r.isEmpty()) nextId = Integer.parseInt(((String) r.get(0)).substring(2)) + 1;
             return prefix + String.format("%04d", nextId);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return prefix + "0001";
-        }
+        } catch (Exception e) { e.printStackTrace(); return prefix + "0001"; }
     }
 
     public static String getMaBanCuoiTheoKhuVuc(String khuVuc) {
         String prefix = switch (khuVuc) {
-            case "Indoor" -> "BI";
-            case "Outdoor" -> "BO";
-            case "VIP" -> "BV";
-            default -> "B";
+            case "Indoor" -> "BI"; case "Outdoor" -> "BO"; case "VIP" -> "BV"; default -> "B";
         };
-        String sql = "SELECT TOP 1 maBan FROM Ban WHERE maBan LIKE ? ORDER BY maBan DESC";
-        try (PreparedStatement ps = connectDB.getConnection().prepareStatement(sql)) {
-            ps.setString(1, prefix + "%");
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getString("maBan");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        try (EntityManager em = em()) {
+            List<?> r = em.createNativeQuery("SELECT maBan FROM Ban WHERE maBan LIKE :p ORDER BY maBan DESC LIMIT 1")
+                .setParameter("p", prefix + "%").getResultList();
+            if (!r.isEmpty()) return (String) r.get(0);
+        } catch (Exception e) { e.printStackTrace(); }
         return null;
     }
 
     public static boolean conBanTrongTheoKhuVuc(String maKV, int soLuong, LocalDateTime selected) {
-        String sql = """
-        SELECT TOP 1 1
-        FROM Ban b
-        JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan
-        WHERE b.maBan like 'B%'
-          AND  b.maKhuVuc = ?
-          AND lb.soLuong >= ?
-          AND NOT EXISTS (
-              SELECT 1
-              FROM HoaDon hd
-              WHERE hd.maBan = b.maBan
-                AND hd.trangThai IN (0,1)
-                AND hd.tgCheckin IS NOT NULL
-                AND hd.tgCheckin <= ?
-                AND (hd.tgCheckout IS NULL OR hd.tgCheckout > ?)
-          )
-    """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maKV);
-            ps.setInt(2, soLuong);
-            ps.setTimestamp(3, Timestamp.valueOf(selected));
-            ps.setTimestamp(4, Timestamp.valueOf(selected));
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (Exception e) {
-            System.err.println("conBanTrongTheoKhuVuc: " + e.getMessage());
-            return false;
-        }
+        String sql = "SELECT 1 FROM Ban b JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan " +
+                     "WHERE b.maBan LIKE 'B%' AND b.maKhuVuc=:kv AND lb.soLuong >= :sl " +
+                     "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maBan = b.maBan AND hd.trangThai IN (0,1) " +
+                     "AND hd.tgCheckin IS NOT NULL AND hd.tgCheckin <= :sel AND (hd.tgCheckout IS NULL OR hd.tgCheckout > :sel)) LIMIT 1";
+        try (EntityManager em = em()) {
+            return !em.createNativeQuery(sql).setParameter("kv", maKV).setParameter("sl", soLuong)
+                .setParameter("sel", Timestamp.valueOf(selected)).getResultList().isEmpty();
+        } catch (Exception e) { System.err.println("conBanTrongTheoKhuVuc: " + e.getMessage()); return false; }
     }
-
 
     public static boolean conBanTrongTheoLoaiVaKV(String maKV, String maLB, int soLuongKhach, LocalDateTime selected) {
-        String sql = """
-        SELECT TOP 1 1
-        FROM Ban b
-        JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan
-        WHERE b.maBan like 'B%'
-          AND b.maKhuVuc = ?
-          AND b.maLoaiBan = ?      -- FIX: bàn trống
-          AND lb.soLuong >= ?
-          AND NOT EXISTS (
-              SELECT 1
-              FROM HoaDon hd
-              WHERE hd.maBan = b.maBan
-                AND hd.trangThai IN (0,1)
-                AND hd.tgCheckin IS NOT NULL
-                AND hd.tgCheckin <= ?
-                AND (hd.tgCheckout IS NULL OR hd.tgCheckout > ?)
-          )
-    """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maKV);
-            ps.setString(2, maLB);
-            ps.setInt(3, soLuongKhach);
-            ps.setTimestamp(4, Timestamp.valueOf(selected));
-            ps.setTimestamp(5, Timestamp.valueOf(selected));
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (Exception e) {
-            System.err.println("conBanTrongTheoLoaiVaKV: " + e.getMessage());
-            return false;
-        }
+        String sql = "SELECT 1 FROM Ban b JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan " +
+                     "WHERE b.maBan LIKE 'B%' AND b.maKhuVuc=:kv AND b.maLoaiBan=:lb AND lb.soLuong >= :sl " +
+                     "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maBan = b.maBan AND hd.trangThai IN (0,1) " +
+                     "AND hd.tgCheckin IS NOT NULL AND hd.tgCheckin <= :sel AND (hd.tgCheckout IS NULL OR hd.tgCheckout > :sel)) LIMIT 1";
+        try (EntityManager em = em()) {
+            return !em.createNativeQuery(sql).setParameter("kv", maKV).setParameter("lb", maLB)
+                .setParameter("sl", soLuongKhach).setParameter("sel", Timestamp.valueOf(selected)).getResultList().isEmpty();
+        } catch (Exception e) { System.err.println("conBanTrongTheoLoaiVaKV: " + e.getMessage()); return false; }
     }
 
-
     public static Ban getMotBanTrongTheoLoaiVaKV(String maKV, String maLB, int soLuongKhach, LocalDateTime selected) {
-        String sql = """
-        SELECT TOP 1 b.maBan, b.trangThai,
-               lb.maLoaiBan, lb.tenLoaiBan, lb.soLuong,
-               kv.maKhuVuc, kv.tenKhuVuc
-        FROM Ban b
-        JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan
-        JOIN KhuVuc kv ON b.maKhuVuc = kv.maKhuVuc
-        WHERE b.maBan like 'B%'
-          AND b.maKhuVuc = ?
-          AND b.maLoaiBan = ?      -- FIX: bàn trống
-          AND lb.soLuong >= ?
-          AND NOT EXISTS (
-              SELECT 1
-              FROM HoaDon hd
-              WHERE hd.maBan = b.maBan
-                AND hd.trangThai IN (0,1)
-                AND hd.tgCheckin IS NOT NULL
-                AND hd.tgCheckin <= ?
-                AND (hd.tgCheckout IS NULL OR hd.tgCheckout > ?)
-          )
-        ORDER BY b.maBan
-    """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maKV);
-            ps.setString(2, maLB);
-            ps.setInt(3, soLuongKhach);
-            ps.setTimestamp(4, Timestamp.valueOf(selected));
-            ps.setTimestamp(5, Timestamp.valueOf(selected));
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapBan(rs); // FIX: trả full object
-            }
-        } catch (Exception e) {
-            System.err.println("getMotBanTrongTheoLoaiVaKV: " + e.getMessage());
-        }
+        String sql = SELECT_JOIN +
+                     " WHERE b.maBan LIKE 'B%' AND b.maKhuVuc=:kv AND b.maLoaiBan=:lb AND lb.soLuong >= :sl " +
+                     "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.maBan = b.maBan AND hd.trangThai IN (0,1) " +
+                     "AND hd.tgCheckin IS NOT NULL AND hd.tgCheckin <= :sel AND (hd.tgCheckout IS NULL OR hd.tgCheckout > :sel)) ORDER BY b.maBan LIMIT 1";
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(sql, Tuple.class).setParameter("kv", maKV).setParameter("lb", maLB)
+                .setParameter("sl", soLuongKhach).setParameter("sel", Timestamp.valueOf(selected)).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) { System.err.println("getMotBanTrongTheoLoaiVaKV: " + e.getMessage()); }
         return null;
     }
 
     public static int getMaxSucChuaTheoKhuVuc(String maKV) {
-        String sql = """
-        SELECT ISNULL(MAX(lb.soLuong), 0) AS maxSL
-        FROM Ban b
-        JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan
-        WHERE b.maBan like 'B%'
-          AND b.maKhuVuc = ?
-    """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maKV);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt("maxSL");
-            }
-        } catch (Exception e) {
-            System.err.println("getMaxSucChuaTheoKhuVuc: " + e.getMessage());
-        }
-        return 0;
+        String sql = "SELECT IFNULL(MAX(lb.soLuong), 0) AS maxSL FROM Ban b JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan " +
+                     "WHERE b.maBan LIKE 'B%' AND b.maKhuVuc=:kv";
+        try (EntityManager em = em()) {
+            Object result = em.createNativeQuery(sql).setParameter("kv", maKV).getSingleResult();
+            return result != null ? ((Number) result).intValue() : 0;
+        } catch (Exception e) { System.err.println("getMaxSucChuaTheoKhuVuc: " + e.getMessage()); return 0; }
     }
-
-
 }

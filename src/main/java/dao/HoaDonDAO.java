@@ -1,6 +1,6 @@
 package dao;
 
-import connectDB.connectDB;
+import infrastructure.db.JpaConfig;
 import entity.*;
 
 import java.sql.*;
@@ -8,7 +8,17 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import org.hibernate.Session;
+import jakarta.persistence.EntityManager;
+
 public class HoaDonDAO {
+
+    // Helper: lấy JDBC Connection từ JPA EntityManager (Hibernate)
+    private static Connection getJpaConnection() throws SQLException {
+        EntityManager em = JpaConfig.getEntityManagerFactory().createEntityManager();
+        Session session = em.unwrap(Session.class);
+        return session.doReturningWork(connection -> connection);
+    }
 
     // =====================================================================
     //                          MAPPER FULL
@@ -146,7 +156,7 @@ public class HoaDonDAO {
 
         String sql = SELECT_FULL;
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
@@ -177,7 +187,7 @@ public class HoaDonDAO {
             )
         """;
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
@@ -199,7 +209,7 @@ public class HoaDonDAO {
 
         String sql = SELECT_FULL + " WHERE hd.maHD = ?";
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, maHD);
@@ -282,7 +292,7 @@ public class HoaDonDAO {
                 .append(" OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY ");
 
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
 
             for (int i = 0; i < params.size(); i++) {
@@ -320,7 +330,7 @@ public class HoaDonDAO {
 
         String sql = SELECT_FULL + " WHERE hd.maNV = ?";
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, maNV);
@@ -351,7 +361,7 @@ public class HoaDonDAO {
             ORDER BY hd.maHD DESC
         """;
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
@@ -393,7 +403,7 @@ public class HoaDonDAO {
                           AND hd.tgLapHD < DATEADD(DAY, 1, CAST(GETDATE() AS DATE)))))
                 )""";
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
@@ -471,7 +481,7 @@ public class HoaDonDAO {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, hd.getMaHD());
@@ -509,7 +519,7 @@ public class HoaDonDAO {
             WHERE maHD=?
         """;
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, hd.getKhachHang() != null ? hd.getKhachHang().getMaKhachHang() : null);
@@ -541,7 +551,7 @@ public class HoaDonDAO {
     public static boolean delete(String maHD) {
         String sql = "DELETE FROM HoaDon WHERE maHD=?";
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, maHD);
@@ -567,7 +577,7 @@ public class HoaDonDAO {
             ORDER BY maHD DESC
         """;
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, prefix + "%");
@@ -657,7 +667,7 @@ public class HoaDonDAO {
         ORDER BY hd.tgLapHD
     """;
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
@@ -780,7 +790,7 @@ public class HoaDonDAO {
         ORDER BY hd.tgLapHD
     """;
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
@@ -833,7 +843,7 @@ public class HoaDonDAO {
         String sql = SELECT_FULL + " WHERE hd.trangThai = ? AND b.maBan LIKE 'B%'";
         //AND hd.tgCheckin > GETDATE()
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, trangThai);
@@ -869,7 +879,7 @@ public class HoaDonDAO {
         ORDER BY COALESCE(hd.tgCheckin, hd.tgLapHD) DESC
     """;
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
+        try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 

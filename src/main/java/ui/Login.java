@@ -60,6 +60,12 @@ public class Login extends Application {
     }
 
     public static void main(String[] args) {
+        // Khởi tạo JPA/Hibernate để tạo bảng tự động (hbm2ddl=update)
+        try {
+            infrastructure.db.JpaConfig.getEntityManagerFactory();
+        } catch (Exception e) {
+            System.err.println("Lỗi khởi tạo JPA: " + e.getMessage());
+        }
         launch();
     }
 }

@@ -1,147 +1,81 @@
 package dao;
 
-import connectDB.connectDB;
 import entity.ThoiGianDoiBan;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Tuple;
 
-import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ThoiGianDoiBanDAO {
 
-    // ==============================
-    // MAP OBJECT
-    // ==============================
-    private static ThoiGianDoiBan map(ResultSet rs) throws SQLException {
-        return new ThoiGianDoiBan(
-                rs.getString("maTGDB"),
-                rs.getBoolean("loaiDatBan"),
-                rs.getInt("thoiGian")
-        );
+    private static EntityManager em() { return JpaConfig.getEntityManagerFactory().createEntityManager(); }
+
+    private static boolean toBool(Object val) {
+        if (val == null) return false;
+        if (val instanceof Boolean) return (Boolean) val;
+        return ((Number) val).intValue() != 0;
     }
 
-    // ==============================
-    // GET ALL
-    // ==============================
+    private static ThoiGianDoiBan mapRow(Tuple t) {
+        return new ThoiGianDoiBan(t.get("maTGDB", String.class), toBool(t.get("loaiDatBan")), ((Number) t.get("thoiGian")).intValue());
+    }
+
     public static List<ThoiGianDoiBan> getAll() {
         List<ThoiGianDoiBan> ds = new ArrayList<>();
-        String sql = "SELECT * FROM ThoiGianDoiBan ORDER BY maTGDB";
-
-        try (Connection con = connectDB.getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            while (rs.next()) ds.add(map(rs));
-
-        } catch (SQLException e) {
-            System.err.println("ThoiGianDoiBanDAO.getAll(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            @SuppressWarnings("unchecked")
+            List<Tuple> rows = em.createNativeQuery("SELECT maTGDB, loaiDatBan, thoiGian FROM ThoiGianDoiBan ORDER BY maTGDB", Tuple.class).getResultList();
+            for (Tuple t : rows) ds.add(mapRow(t));
+        } catch (Exception e) { System.err.println("ThoiGianDoiBanDAO.getAll(): " + e.getMessage()); }
         return ds;
     }
 
-    // ==============================
-    // GET LATEST (any loaiDatBan)
-    // ==============================
     public ThoiGianDoiBan getLatest() {
-        String sql = "SELECT TOP 1 * FROM ThoiGianDoiBan ORDER BY maTGDB DESC";
-
-        try (Connection con = connectDB.getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            if (rs.next()) return map(rs);
-
-        } catch (SQLException e) {
-            System.err.println("ThoiGianDoiBanDAO.getLatest(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery("SELECT maTGDB, loaiDatBan, thoiGian FROM ThoiGianDoiBan ORDER BY maTGDB DESC LIMIT 1", Tuple.class).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) { System.err.println("ThoiGianDoiBanDAO.getLatest(): " + e.getMessage()); }
         return null;
     }
 
-    // ==============================
-    // GET LATEST BY loaiDatBan
-    // ==============================
     public static ThoiGianDoiBan getLatestByLoai(boolean loaiDatBan) {
-        String sql = """
-            SELECT TOP 1 * 
-            FROM ThoiGianDoiBan 
-            WHERE loaiDatBan = ? 
-            ORDER BY maTGDB DESC
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setBoolean(1, loaiDatBan);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) return map(rs);
-
-        } catch (SQLException e) {
-            System.err.println("ThoiGianDoiBanDAO.getLatestByLoai(): " + e.getMessage());
-        }
-
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery("SELECT maTGDB, loaiDatBan, thoiGian FROM ThoiGianDoiBan WHERE loaiDatBan=:loai ORDER BY maTGDB DESC LIMIT 1", Tuple.class)
+                .setParameter("loai", loaiDatBan).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) { System.err.println("ThoiGianDoiBanDAO.getLatestByLoai(): " + e.getMessage()); }
         return null;
     }
 
-    // ==============================
-    // INSERT
-    // ==============================
     public boolean insert(ThoiGianDoiBan tgdb) {
-        String sql = "INSERT INTO ThoiGianDoiBan(maTGDB, loaiDatBan, thoiGian) VALUES (?, ?, ?)";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, tgdb.getMaTGDB());
-            ps.setBoolean(2, tgdb.isLoaiDatBan());
-            ps.setInt(3, tgdb.getThoiGian());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("ThoiGianDoiBanDAO.insert(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            em.createNativeQuery("INSERT INTO ThoiGianDoiBan(maTGDB, loaiDatBan, thoiGian) VALUES (:ma, :loai, :tg)")
+                .setParameter("ma", tgdb.getMaTGDB()).setParameter("loai", tgdb.isLoaiDatBan()).setParameter("tg", tgdb.getThoiGian()).executeUpdate();
+            tx.commit(); return true;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("ThoiGianDoiBanDAO.insert(): " + e.getMessage()); return false; }
     }
 
-    // ==============================
-    // UPDATE
-    // ==============================
     public boolean update(ThoiGianDoiBan tgdb) {
-        String sql = "UPDATE ThoiGianDoiBan SET loaiDatBan=?, thoiGian=? WHERE maTGDB=?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setBoolean(1, tgdb.isLoaiDatBan());
-            ps.setInt(2, tgdb.getThoiGian());
-            ps.setString(3, tgdb.getMaTGDB());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("ThoiGianDoiBanDAO.update(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("UPDATE ThoiGianDoiBan SET loaiDatBan=:loai, thoiGian=:tg WHERE maTGDB=:ma")
+                .setParameter("loai", tgdb.isLoaiDatBan()).setParameter("tg", tgdb.getThoiGian()).setParameter("ma", tgdb.getMaTGDB()).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("ThoiGianDoiBanDAO.update(): " + e.getMessage()); return false; }
     }
 
-    // ==============================
-    // DELETE
-    // ==============================
     public boolean delete(String maTGDB) {
-        String sql = "DELETE FROM ThoiGianDoiBan WHERE maTGDB=?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maTGDB);
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("ThoiGianDoiBanDAO.delete(): " + e.getMessage());
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("DELETE FROM ThoiGianDoiBan WHERE maTGDB=:ma").setParameter("ma", maTGDB).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("ThoiGianDoiBanDAO.delete(): " + e.getMessage()); return false; }
     }
 }

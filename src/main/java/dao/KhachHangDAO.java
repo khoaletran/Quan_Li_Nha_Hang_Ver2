@@ -1,290 +1,117 @@
 package dao;
 
-import connectDB.connectDB;
 import entity.HangKhachHang;
 import entity.KhachHang;
-import java.sql.*;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Tuple;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class KhachHangDAO {
 
-    // ===== LẤY TOÀN BỘ DANH SÁCH KHÁCH HÀNG =====
+    private static EntityManager em() { return JpaConfig.getEntityManagerFactory().createEntityManager(); }
+
+    private static boolean toBool(Object val) {
+        if (val == null) return false;
+        if (val instanceof Boolean) return (Boolean) val;
+        return ((Number) val).intValue() != 0;
+    }
+
+    private static final String SELECT_JOIN =
+        "SELECT kh.maKH, kh.maHang, kh.tenKH, kh.sdt, kh.gioiTinh, kh.diemTichLuy, " +
+        "hkh.diemHang, hkh.giamGia, hkh.moTa " +
+        "FROM KhachHang kh JOIN HangKhachHang hkh ON kh.maHang = hkh.maHang";
+
+    private static KhachHang mapRow(Tuple t) {
+        HangKhachHang hang = new HangKhachHang(
+            t.get("maHang", String.class), t.get("moTa", String.class),
+            ((Number) t.get("giamGia")).intValue(), ((Number) t.get("diemHang")).intValue());
+        return new KhachHang(t.get("maKH", String.class), ((Number) t.get("diemTichLuy")).intValue(),
+            toBool(t.get("gioiTinh")), t.get("sdt", String.class), t.get("tenKH", String.class), hang);
+    }
+
     public static List<KhachHang> getAll() {
         List<KhachHang> list = new ArrayList<>();
-
-        String sql = """
-        SELECT kh.maKH,
-               kh.maHang,
-               kh.tenKH,
-               kh.sdt,
-               kh.gioiTinh,
-               kh.diemTichLuy,
-               hkh.diemHang,
-               hkh.giamGia,
-               hkh.moTa
-        FROM KhachHang kh
-        JOIN HangKhachHang hkh ON kh.maHang = hkh.maHang
-        """;
-
-        try (Statement st = connectDB.getConnection().createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            while (rs.next()) {
-
-                HangKhachHang hang = new HangKhachHang(
-                        rs.getString("maHang"),
-                        rs.getString("moTa"),
-                        rs.getInt("giamGia"),
-                        rs.getInt("diemHang")
-                );
-
-                KhachHang kh = new KhachHang(
-                        rs.getString("maKH"),
-                        rs.getInt("diemTichLuy"),
-                        rs.getBoolean("gioiTinh"),
-                        rs.getString("sdt"),
-                        rs.getString("tenKH"),
-                        hang
-                );
-
-                list.add(kh);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
+        try (EntityManager em = em()) {
+            @SuppressWarnings("unchecked")
+            List<Tuple> rows = em.createNativeQuery(SELECT_JOIN, Tuple.class).getResultList();
+            for (Tuple t : rows) list.add(mapRow(t));
+        } catch (Exception e) { e.printStackTrace(); }
         return list;
     }
 
-
-    // ===== THÊM KHÁCH HÀNG MỚI =====
     public static boolean insert(KhachHang kh) {
-        String sql = "INSERT INTO KhachHang(maKH, maHang, tenKH, sdt, gioiTinh, diemTichLuy) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = connectDB.getConnection().prepareStatement(sql)) {
-            ps.setString(1, kh.getMaKhachHang());
-            ps.setString(2, kh.getHangKhachHang() != null ? kh.getHangKhachHang().getMaHang() : null);
-            ps.setString(3, kh.getTenKhachHang());
-            ps.setString(4, kh.getSdt());
-            ps.setBoolean(5, kh.isGioiTinh());
-            ps.setInt(6, kh.getDiemTichLuy());
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            em.createNativeQuery("INSERT INTO KhachHang(maKH, maHang, tenKH, sdt, gioiTinh, diemTichLuy) VALUES (:ma, :hang, :ten, :sdt, :gt, :diem)")
+                .setParameter("ma", kh.getMaKhachHang()).setParameter("hang", kh.getHangKhachHang() != null ? kh.getHangKhachHang().getMaHang() : null)
+                .setParameter("ten", kh.getTenKhachHang()).setParameter("sdt", kh.getSdt())
+                .setParameter("gt", kh.isGioiTinh()).setParameter("diem", kh.getDiemTichLuy()).executeUpdate();
+            tx.commit(); return true;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); e.printStackTrace(); return false; }
     }
 
-    // ===== CẬP NHẬT THÔNG TIN KHÁCH HÀNG =====
     public static boolean update(KhachHang kh) {
-        String sql = "UPDATE KhachHang SET tenKH=?, sdt=?, gioiTinh=?, diemTichLuy=? WHERE maKH=?";
-        try (PreparedStatement ps = connectDB.getConnection().prepareStatement(sql)) {
-            ps.setString(1, kh.getTenKhachHang());
-            ps.setString(2, kh.getSdt());
-            ps.setBoolean(3, kh.isGioiTinh());
-            ps.setInt(4, kh.getDiemTichLuy());
-            ps.setString(5, kh.getMaKhachHang());
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("UPDATE KhachHang SET tenKH=:ten, sdt=:sdt, gioiTinh=:gt, diemTichLuy=:diem WHERE maKH=:ma")
+                .setParameter("ten", kh.getTenKhachHang()).setParameter("sdt", kh.getSdt())
+                .setParameter("gt", kh.isGioiTinh()).setParameter("diem", kh.getDiemTichLuy())
+                .setParameter("ma", kh.getMaKhachHang()).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); e.printStackTrace(); return false; }
     }
 
-    // ===== XÓA KHÁCH HÀNG =====
     public static boolean delete(String maKH) {
-        String sql = "DELETE FROM KhachHang WHERE maKH=?";
-        try (PreparedStatement ps = connectDB.getConnection().prepareStatement(sql)) {
-            ps.setString(1, maKH);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("DELETE FROM KhachHang WHERE maKH=:ma").setParameter("ma", maKH).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); e.printStackTrace(); return false; }
     }
 
-    // ===== TÌM KHÁCH HÀNG THEO SỐ ĐIỆN THOẠI =====
     public KhachHang findBySDT(String sdt) {
-        String sql = "SELECT * FROM KhachHang WHERE sdt = ?";
-        try (PreparedStatement ps = connectDB.getConnection().prepareStatement(sql)) {
-            ps.setString(1, sdt);
-            List<HangKhachHang> dsHang = HangKhachDAO.getAll();
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    String maHang = rs.getString("maHang");
-                    HangKhachHang hang = dsHang.stream()
-                            .filter(h -> h.getMaHang().equals(maHang))
-                            .findFirst()
-                            .orElse(null);
-                    return new KhachHang(
-                            rs.getString("maKH"),
-                            rs.getInt("diemTichLuy"),
-                            rs.getBoolean("gioiTinh"),
-                            rs.getString("sdt"),
-                            rs.getString("tenKH"),
-                            hang
-                    );
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(SELECT_JOIN + " WHERE kh.sdt=:sdt", Tuple.class).setParameter("sdt", sdt).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) { e.printStackTrace(); }
         return null;
     }
 
-    // ===== LẤY MÃ KHÁCH HÀNG CUỐI CÙNG =====
     public static String getMaKHCuoi() {
-        String sql = "SELECT TOP 1 maKH FROM KhachHang ORDER BY maKH DESC";
-        try (Statement st = connectDB.getConnection().createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            if (rs.next()) {
-                return rs.getString("maKH");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        try (EntityManager em = em()) {
+            List<?> r = em.createNativeQuery("SELECT maKH FROM KhachHang ORDER BY maKH DESC LIMIT 1").getResultList();
+            if (!r.isEmpty()) return (String) r.get(0);
+        } catch (Exception e) { e.printStackTrace(); }
         return null;
     }
 
-    public KhachHang getById(String maKH) {
-        KhachHang kh = null;
-        String sql = "SELECT * FROM KhachHang WHERE maKH = ?";
-        try (PreparedStatement stmt = connectDB.getConnection().prepareStatement(sql)) {
-            stmt.setString(1, maKH);
-            List<HangKhachHang> dsHang = HangKhachDAO.getAll();
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    String maHang = rs.getString("maHang");
-                    HangKhachHang hang = dsHang.stream()
-                            .filter(h -> h.getMaHang().equals(maHang))
-                            .findFirst()
-                            .orElse(null);
-                    kh = new KhachHang(
-                            rs.getString("maKH"),
-                            rs.getInt("diemTichLuy"),
-                            rs.getBoolean("gioiTinh"),
-                            rs.getString("sdt"),
-                            rs.getString("tenKH"),
-                            hang
-                    );
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return kh;
-    }
+    public KhachHang getById(String maKH) { return getByID(maKH); }
 
     public static KhachHang getByID(String maKH) {
-        KhachHang kh = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-
-        try {
-            // Kết nối giống NhanVienDAO
-            connectDB.getInstance().connect();
-            Connection con = connectDB.getConnection();
-
-            String sql = "SELECT * FROM KhachHang WHERE maKH = ?";
-            ps = con.prepareStatement(sql);
-            ps.setString(1, maKH);
-            rs = ps.executeQuery();
-
-            if (rs.next()) {
-                String maHang = rs.getString("maHang");
-                HangKhachHang hang = (maHang != null) ? HangKhachDAO.getByID(maHang) : null;
-
-                kh = new KhachHang(
-                        rs.getString("maKH"),
-                        rs.getInt("diemTichLuy"),
-                        rs.getBoolean("gioiTinh"),
-                        rs.getString("sdt"),
-                        rs.getString("tenKH"),
-                        hang
-                );
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy khách hàng theo mã: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            try {
-                if (rs != null) rs.close();
-                if (ps != null) ps.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-
-        return kh;
+        String sql = "SELECT kh.maKH, kh.maHang, kh.tenKH, kh.sdt, kh.gioiTinh, kh.diemTichLuy, " +
+                     "hkh.diemHang, hkh.giamGia, hkh.moTa " +
+                     "FROM KhachHang kh LEFT JOIN HangKhachHang hkh ON kh.maHang = hkh.maHang WHERE kh.maKH=:ma";
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery(sql, Tuple.class).setParameter("ma", maKH).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) { e.printStackTrace(); }
+        return null;
     }
 
-
     public static String tuSinhMaKhachHang() {
-        String sql = "SELECT TOP 1 maKH FROM KhachHang ORDER BY maKH DESC";
-        String lastMa = null;
-        try (Connection conn = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) lastMa = rs.getString("maKH");
-        } catch (SQLException e) {
-            System.err.println("Lỗi lấy mã KH cuối: " + e.getMessage());
-        }
-
+        String lastMa = getMaKHCuoi();
         int so = (lastMa != null) ? Integer.parseInt(lastMa.substring(2)) + 1 : 1;
         return String.format("KH%04d", so);
     }
 
-    public KhachHang taoKhachHangMoi(KhachHang kh) {
-        String sql = """
-        INSERT INTO KhachHang(maKH, tenKH, sdt, gioiTinh, diemTichLuy, maHang)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """;
+    public KhachHang taoKhachHangMoi(KhachHang kh) { return insert(kh) ? kh : null; }
 
-        try (Connection conn = connectDB.getInstance().getNewConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, kh.getMaKhachHang());
-            ps.setString(2, kh.getTenKhachHang());
-            ps.setString(3, kh.getSdt());
-            ps.setBoolean(4, kh.isGioiTinh());
-            ps.setInt(5, kh.getDiemTichLuy());
-            ps.setString(6, kh.getHangKhachHang().getMaHang());
-
-            if (ps.executeUpdate() > 0) {
-                System.out.println("Đã thêm khách hàng mới vào DB: " + kh.getMaKhachHang());
-                return kh;
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi thêm khách hàng mới: " + e.getMessage());
-        }
-
-        return null;
-    }
-
-
-    public static String maKHCuoi() {
-        String sql = "SELECT TOP 1 maKH FROM KhachHang ORDER BY maKH DESC";
-        String maKHCuoi = null;
-
-        try {
-            connectDB.getInstance().connect();
-            Connection con = connectDB.getConnection();
-
-            try (PreparedStatement ps = con.prepareStatement(sql);
-                 ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    maKHCuoi = rs.getString("maKH");
-                }
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy mã khách hàng cuối: " + e.getMessage());
-        }
-        return maKHCuoi;
-    }
-
-
+    public static String maKHCuoi() { return getMaKHCuoi(); }
 }

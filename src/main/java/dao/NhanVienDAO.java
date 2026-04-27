@@ -1,184 +1,126 @@
 package dao;
 
-import connectDB.connectDB;
 import entity.NhanVien;
+import infrastructure.db.JpaConfig;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Tuple;
 
-import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class NhanVienDAO {
 
-    // ==============================
-    // MAP OBJECT
-    // ==============================
-    private static NhanVien map(ResultSet rs) throws SQLException {
-        return new NhanVien(
-                rs.getString("maNV"),
-                rs.getString("tenNV"),
-                rs.getString("sdt"),
-                rs.getBoolean("gioiTinh"),
-                rs.getBoolean("quanLi"),
-                rs.getDate("ngayVaoLam").toLocalDate(),
-                rs.getBoolean("trangThai"),
-                rs.getString("matKhau")
-        );
+    private static EntityManager em() {
+        return JpaConfig.getEntityManagerFactory().createEntityManager();
     }
 
-    // ==============================
-    // GET ALL
-    // ==============================
+    private static boolean toBool(Object val) {
+        if (val == null) return false;
+        if (val instanceof Boolean) return (Boolean) val;
+        return ((Number) val).intValue() != 0;
+    }
+
+    private static NhanVien mapRow(Tuple t) {
+        NhanVien nv = new NhanVien();
+        nv.setMaNV(t.get("maNV", String.class));
+        nv.setTenNV(t.get("tenNV", String.class));
+        nv.setSdt(t.get("sdt", String.class));
+        nv.setGioiTinh(toBool(t.get("gioiTinh")));
+        nv.setQuanLi(toBool(t.get("quanLi")));
+        Object ngay = t.get("ngayVaoLam");
+        if (ngay instanceof java.sql.Date d) nv.setNgayVaoLam(d.toLocalDate());
+        else if (ngay instanceof LocalDate ld) nv.setNgayVaoLam(ld);
+        nv.setTrangThai(toBool(t.get("trangThai")));
+        nv.setMatKhau(t.get("matKhau", String.class));
+        return nv;
+    }
+
     public static List<NhanVien> getAll() {
         List<NhanVien> list = new ArrayList<>();
-        String sql = "SELECT * FROM NhanVien ORDER BY maNV";
-
-        try (Connection con = connectDB.getConnection();
-             Statement stmt = con.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) list.add(map(rs));
-
-        } catch (SQLException e) {
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery("SELECT maNV, tenNV, sdt, gioiTinh, quanLi, ngayVaoLam, trangThai, matKhau FROM NhanVien ORDER BY maNV", Tuple.class).getResultList();
+            for (Tuple t : rows) list.add(mapRow(t));
+        } catch (Exception e) {
             System.err.println("NhanVienDAO.getAll(): " + e.getMessage());
         }
-
         return list;
     }
 
-    // ==============================
-    // INSERT
-    // ==============================
     public static boolean insert(NhanVien nv) {
-        String sql = """
-            INSERT INTO NhanVien(maNV, tenNV, sdt, gioiTinh, quanLi, ngayVaoLam, trangThai, matKhau)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, nv.getMaNV());
-            ps.setString(2, nv.getTenNV());
-            ps.setString(3, nv.getSdt());
-            ps.setBoolean(4, nv.isGioiTinh());
-            ps.setBoolean(5, nv.isQuanLi());
-            ps.setDate(6, Date.valueOf(nv.getNgayVaoLam()));
-            ps.setBoolean(7, nv.isTrangThai());
-            ps.setString(8, nv.getMatKhau());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("NhanVienDAO.insert(): " + e.getMessage());
-            return false;
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            em.createNativeQuery("INSERT INTO NhanVien(maNV, tenNV, sdt, gioiTinh, quanLi, ngayVaoLam, trangThai, matKhau) VALUES (:maNV, :tenNV, :sdt, :gt, :ql, :ngay, :tt, :mk)")
+                .setParameter("maNV", nv.getMaNV()).setParameter("tenNV", nv.getTenNV()).setParameter("sdt", nv.getSdt())
+                .setParameter("gt", nv.isGioiTinh()).setParameter("ql", nv.isQuanLi()).setParameter("ngay", nv.getNgayVaoLam())
+                .setParameter("tt", nv.isTrangThai()).setParameter("mk", nv.getMatKhau()).executeUpdate();
+            tx.commit(); return true;
+        } catch (Exception e) {
+            if (tx != null && tx.isActive()) tx.rollback();
+            System.err.println("NhanVienDAO.insert(): " + e.getMessage()); return false;
         }
     }
 
-    // ==============================
-    // UPDATE
-    // ==============================
     public static boolean update(NhanVien nv) {
-        String sql = """
-            UPDATE NhanVien
-            SET tenNV=?, sdt=?, gioiTinh=?, quanLi=?, ngayVaoLam=?, trangThai=?, matKhau=?
-            WHERE maNV=?
-        """;
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, nv.getTenNV());
-            ps.setString(2, nv.getSdt());
-            ps.setBoolean(3, nv.isGioiTinh());
-            ps.setBoolean(4, nv.isQuanLi());
-            ps.setDate(5, Date.valueOf(nv.getNgayVaoLam()));
-            ps.setBoolean(6, nv.isTrangThai());
-            ps.setString(7, nv.getMatKhau());
-            ps.setString(8, nv.getMaNV());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("NhanVienDAO.update(): " + e.getMessage());
-            return false;
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("UPDATE NhanVien SET tenNV=:tenNV, sdt=:sdt, gioiTinh=:gt, quanLi=:ql, ngayVaoLam=:ngay, trangThai=:tt, matKhau=:mk WHERE maNV=:maNV")
+                .setParameter("tenNV", nv.getTenNV()).setParameter("sdt", nv.getSdt()).setParameter("gt", nv.isGioiTinh())
+                .setParameter("ql", nv.isQuanLi()).setParameter("ngay", nv.getNgayVaoLam()).setParameter("tt", nv.isTrangThai())
+                .setParameter("mk", nv.getMatKhau()).setParameter("maNV", nv.getMaNV()).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) {
+            if (tx != null && tx.isActive()) tx.rollback();
+            System.err.println("NhanVienDAO.update(): " + e.getMessage()); return false;
         }
     }
 
-    // ==============================
-    // DELETE
-    // ==============================
     public static boolean delete(String maNV) {
-        String sql = "DELETE FROM NhanVien WHERE maNV=?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maNV);
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("NhanVienDAO.delete(): " + e.getMessage());
-            return false;
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("DELETE FROM NhanVien WHERE maNV=:maNV").setParameter("maNV", maNV).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) {
+            if (tx != null && tx.isActive()) tx.rollback();
+            System.err.println("NhanVienDAO.delete(): " + e.getMessage()); return false;
         }
     }
 
-    // ==============================
-    // GET BY ID
-    // ==============================
     public static NhanVien getByID(String maNV) {
-        String sql = "SELECT * FROM NhanVien WHERE maNV = ?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, maNV);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) return map(rs);
-
-        } catch (SQLException e) {
+        try (EntityManager em = em()) {
+            List<Tuple> rows = em.createNativeQuery("SELECT maNV, tenNV, sdt, gioiTinh, quanLi, ngayVaoLam, trangThai, matKhau FROM NhanVien WHERE maNV=:maNV", Tuple.class)
+                .setParameter("maNV", maNV).getResultList();
+            if (!rows.isEmpty()) return mapRow(rows.get(0));
+        } catch (Exception e) {
             System.err.println("NhanVienDAO.getByID(): " + e.getMessage());
         }
-
         return null;
     }
 
-    // ==============================
-    // LẤY MÃ NV CUỐI
-    // ==============================
     public static String maNVCuoi() {
-        String sql = "SELECT maNV FROM NhanVien ORDER BY maNV DESC LIMIT 1";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            if (rs.next()) return rs.getString("maNV");
-
-        } catch (SQLException e) {
+        try (EntityManager em = em()) {
+            List<?> r = em.createNativeQuery("SELECT maNV FROM NhanVien ORDER BY maNV DESC LIMIT 1").getResultList();
+            if (!r.isEmpty()) return (String) r.get(0);
+        } catch (Exception e) {
             System.err.println("NhanVienDAO.maNVCuoi(): " + e.getMessage());
         }
-
         return null;
     }
 
-    // ==============================
-    // CẬP NHẬT MẬT KHẨU
-    // ==============================
     public static boolean updateMatKhau(String maNV, String matKhauMoi) {
-        String sql = "UPDATE NhanVien SET matKhau = ? WHERE maNV = ?";
-
-        try (Connection con = connectDB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, matKhauMoi);
-            ps.setString(2, maNV);
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("NhanVienDAO.updateMatKhau(): " + e.getMessage());
-            return false;
+        EntityTransaction tx = null;
+        try (EntityManager em = em()) {
+            tx = em.getTransaction(); tx.begin();
+            int r = em.createNativeQuery("UPDATE NhanVien SET matKhau=:mk WHERE maNV=:maNV")
+                .setParameter("mk", matKhauMoi).setParameter("maNV", maNV).executeUpdate();
+            tx.commit(); return r > 0;
+        } catch (Exception e) {
+            if (tx != null && tx.isActive()) tx.rollback();
+            System.err.println("NhanVienDAO.updateMatKhau(): " + e.getMessage()); return false;
         }
     }
 }
