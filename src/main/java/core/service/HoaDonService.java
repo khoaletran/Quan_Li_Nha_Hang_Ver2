@@ -29,6 +29,8 @@ public class HoaDonService {
     private final BanService               banService;
     private final MonService               monService;
     private final CocRepository            cocRepo;
+    private final KhuyenMaiRepository      kmRepo;
+
 
     public HoaDonService() {
         this.hoaDonRepo = new HoaDonRepositoryImpl();
@@ -38,6 +40,7 @@ public class HoaDonService {
         this.banService = new BanService();
         this.monService = new MonService();
         this.cocRepo    = new CocRepositoryImpl();
+        this.kmRepo     = new KhuyenMaiRepositoryImpl();
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -228,7 +231,20 @@ public class HoaDonService {
         List<ChiTietHoaDon> items = cthdRepo.findByMaHD(maHD);
 
         double tongTruoc  = computeTongTienTruoc(hd, items);
-        double tienMaKM   = computeTienMaKM(hd, tongTruoc);
+
+        // Prioritize Voucher from DTO (for real-time UI updates)
+        KhuyenMai kmToUse = hd.getKhuyenMai();
+        if (dto.getMaKM() != null && !dto.getMaKM().isBlank()) {
+            // If DTO has a different code, fetch that KM entity
+            if (kmToUse == null || !kmToUse.getMaKM().equals(dto.getMaKM())) {
+                kmToUse = kmRepo.findById(dto.getMaKM()).orElse(null);
+            }
+        } else if (dto.getMaKM() == null) {
+            // Explicitly removed voucher in UI
+            kmToUse = null;
+        }
+
+        double tienMaKM   = computeTienMaKM(kmToUse, tongTruoc);
         double tienHangKM = computeTienHangKM(hd, tongTruoc);
         double tongKM     = tienMaKM + tienHangKM;
         double thue       = tongTruoc * 0.10;
@@ -254,8 +270,7 @@ public class HoaDonService {
         return total;
     }
 
-    private double computeTienMaKM(HoaDon hd, double tongTruoc) {
-        KhuyenMai km = hd.getKhuyenMai();
+    private double computeTienMaKM(KhuyenMai km, double tongTruoc) {
         if (km == null) return 0;
         return km.isUuDai()
             ? km.getPhanTramGiamGia()                          // fixed amount
