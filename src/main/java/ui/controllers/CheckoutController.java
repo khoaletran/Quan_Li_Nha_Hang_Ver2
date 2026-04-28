@@ -68,7 +68,7 @@ public class CheckoutController {
         loadAllHoaDon();
         xuLyHienThiTienMat();
         btnThanhToan.setOnAction(e -> xuLyThanhToan());
-        txtMaGG.textProperty().addListener((obs, oldV, newV) -> updateThanhTien());
+        txtMaGG.textProperty().addListener((obs, oldV, newV) -> updateThanhTienAsync());
         btnSearch.setOnAction(e -> timKiemHoaDon());
         searchField.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.ENTER) timKiemHoaDon();
@@ -140,14 +140,44 @@ public class CheckoutController {
         if (rdoTienMat.isSelected()) taoGoiYTienKhach();
     }
 
+    /** Async variant — runs billing on background thread to avoid UI freeze. */
+    private void updateThanhTienAsync() {
+        if (hdHienTai == null || hdHienTai.getMaHD() == null) return;
+        String code = txtMaGG.getText().trim();
+        HoaDonDTO snapshot = hdHienTai;
+        new Thread(() -> {
+            if (!code.isEmpty() && kmService.isKmConHieuLuc(code)) snapshot.setMaKM(code);
+            else snapshot.setMaKM(null);
+            hoaDonService.enrichWithBilling(snapshot);
+            Platform.runLater(() -> applyBillingLabels(snapshot));
+        }).start();
+    }
+
+    private void applyBillingLabels(HoaDonDTO hd) {
+        lblTongTien.setText(formatCurrency(hd.getTongTienTruoc()));
+        lblGiamGia .setText(formatCurrency(hd.getTongTienKhuyenMai()));
+        lblGiamGia1.setText("( Voucher: " + formatCurrency(hd.getTienMaKM())
+                         + " | Hạng: "   + formatCurrency(hd.getTienHangKM()) + " )");
+        lblThue   .setText(formatCurrency(hd.getThue()));
+        lblTongTT .setText(formatCurrency(hd.getTongTienSau()));
+        lblCoc    .setText(formatCurrency(hd.getCoc()));
+        lblConLai .setText(formatCurrency(hd.getTongTienSau()));
+        if (rdoTienMat.isSelected()) taoGoiYTienKhach();
+    }
+
     // ═════════════════════════════════════════════════════════════════════
     //  LOAD / DISPLAY INVOICE LIST
     // ═════════════════════════════════════════════════════════════════════
 
     public void loadAllHoaDon() {
         vboxHoaDon.getChildren().clear();
-        allHoaDon = hoaDonService.getAllNgayHomNay();   // Service returns DTO
-        renderInvoiceList(allHoaDon);
+        new Thread(() -> {
+            List<HoaDonDTO> list = hoaDonService.getAllNgayHomNay();
+            Platform.runLater(() -> {
+                allHoaDon = list;
+                renderInvoiceList(allHoaDon);
+            });
+        }).start();
     }
 
     private void renderInvoiceList(List<HoaDonDTO> list) {
@@ -187,18 +217,21 @@ public class CheckoutController {
         hdHienTai = hd;
         txtMaGG.clear();
 
+        // Update labels that don't need DB — instant, on FX thread
         lblmaHD  .setText(hd.getMaHD());
-        lbltenKH .setText(hd.getTenKH() != null ? hd.getTenKH() : "Không rõ");
-        lblsdtKH .setText(hd.getSdtKH() != null ? hd.getSdtKH() : "Không có");
-        lblsuKien.setText(hd.getTenSK() != null ? hd.getTenSK() : "Không có");
-        lblKhuVuc.setText(hd.getTenKhuVuc() != null ? hd.getTenKhuVuc() : "?");
+        lbltenKH .setText(hd.getTenKH()    != null ? hd.getTenKH()    : "Không rõ");
+        lblsdtKH .setText(hd.getSdtKH()    != null ? hd.getSdtKH()    : "Không có");
+        lblsuKien.setText(hd.getTenSK()    != null ? hd.getTenSK()    : "Không có");
+        lblKhuVuc.setText(hd.getTenKhuVuc()!= null ? hd.getTenKhuVuc(): "?");
 
-        updateThanhTien();
-
-        // Load chi tiết in background
+        // Load billing + chi tiết in ONE background thread (avoid blocking UI)
         new Thread(() -> {
+            hoaDonService.enrichWithBilling(hd);
             List<ChiTietHoaDonDTO> chiTiet = hoaDonService.getChiTiet(hd.getMaHD());
-            Platform.runLater(() -> renderChiTiet(chiTiet, hd));
+            Platform.runLater(() -> {
+                applyBillingLabels(hd);
+                renderChiTiet(chiTiet, hd);
+            });
         }).start();
     }
 
