@@ -58,7 +58,17 @@ public class QLThanhVienController {
         // load danh sách ban đầu
         loadNhanVienCards();
 
-        txtDiemTL.setEditable(false);
+        // txtDiemTL.setEditable(false); // Xóa bỏ dòng này để cho phép nhập điểm
+        txtDiemTL.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.isEmpty()) {
+                try {
+                    int diem = Integer.parseInt(newValue);
+                    txtHangKH.setText(getTenHangTuDiem(diem));
+                } catch (NumberFormatException e) {
+                    // Bỏ qua nếu không phải số
+                }
+            }
+        });
         Platform.runLater(() -> addShortcuts(txtTimKiem.getScene()));
         Tooltip tipFind = new Tooltip("Tìm kiếm thành viên (Ctrl + F)");
 
@@ -121,39 +131,32 @@ public class QLThanhVienController {
     // FORM HIỂN THỊ / RESET
     // =========================
     private void hienThiThongTin(KhachHang kh) {
-        int diemHang = kh.getHangKhachHang().getDiemHang();
-        String hang;
-
-        if (diemHang >= 0 && diemHang <= 199) {
-            hang = "Đồng";
-        } else if (diemHang >= 200 && diemHang <= 499) {
-            hang = "Bạc";
-        } else if (diemHang >= 500 && diemHang <= 999) {
-            hang = "Vàng";
-        } else if (diemHang >= 1000 && diemHang <= 1999) {
-            hang = "Bạch kim";
-        } else if (diemHang >= 2000) {
-            hang = "Kim cương";
-        } else {
-            hang = "Đồng";
-        }
         lblMaNV.setText(kh.getMaKhachHang());
         txtTenNV.setText(kh.getTenKhachHang());
         txtSDT.setText(kh.getSdt());
-        txtHangKH.setText(hang);
+        txtHangKH.setText(getTenHangTuDiem(kh.getDiemTichLuy())); // Sử dụng hàm chung
         rdoNam.setSelected(kh.isGioiTinh());
         rdoNu.setSelected(!kh.isGioiTinh());
         txtDiemTL.setText(String.valueOf(kh.getDiemTichLuy()));
+    }
+
+    private String getTenHangTuDiem(int diemTL) {
+        if (diemTL >= 0 && diemTL <= 199) return "Đồng";
+        if (diemTL >= 200 && diemTL <= 499) return "Bạc";
+        if (diemTL >= 500 && diemTL <= 999) return "Vàng";
+        if (diemTL >= 1000 && diemTL <= 1999) return "Bạch kim";
+        if (diemTL >= 2000) return "Kim cương";
+        return "Đồng";
     }
 
     private void xoaTrangThongTin() {
         lblMaNV.setText(tuSinhMaKH(KhachHangDAO.getMaKHCuoi()));
         txtTenNV.clear();
         txtSDT.clear();
-        txtHangKH.clear();
+        txtHangKH.setText("Đồng"); // Mặc định là Đồng
         rdoNam.setSelected(false);
         rdoNu.setSelected(false);
-        txtDiemTL.clear();
+        txtDiemTL.setText("0"); // Mặc định là 0 để pass validation
     }
 
     // =========================
@@ -254,36 +257,19 @@ public class QLThanhVienController {
         int giamGia;
         String moTa;
         int diemHang;
+        
         if (diemTL >= 0 && diemTL <= 199) {
-            maHang = "HH0001";
-            giamGia = 0;
-            moTa = "Hạng Đồng - Mới tham gia";
-            diemHang = 0;
+            maHang = "HH0001"; giamGia = 0; moTa = "Hạng Đồng - Mới tham gia"; diemHang = 0;
         } else if (diemTL >= 200 && diemTL <= 499) {
-            maHang = "HH0002";
-            giamGia = 5;
-            moTa = "Hạng Bạc - Khách thân thiết";
-            diemHang = 200;
+            maHang = "HH0002"; giamGia = 5; moTa = "Hạng Bạc - Khách thân thiết"; diemHang = 200;
         } else if (diemTL >= 500 && diemTL <= 999) {
-            maHang = "HH0003";
-            giamGia = 10;
-            moTa = "Hạng Vàng - Khách VIP nhỏ";
-            diemHang = 500;
+            maHang = "HH0003"; giamGia = 10; moTa = "Hạng Vàng - Khách VIP nhỏ"; diemHang = 500;
         } else if (diemTL >= 1000 && diemTL <= 1999) {
-            maHang = "HH0004";
-            giamGia = 15;
-            moTa = "Hạng Bạch Kim - Khách VIP lớn";
-            diemHang = 1000;
+            maHang = "HH0004"; giamGia = 15; moTa = "Hạng Bạch Kim - Khách VIP lớn"; diemHang = 1000;
         } else if (diemTL >= 2000) {
-            maHang = "HH0005";
-            giamGia = 20;
-            moTa = "Hạng Kim Cương - Khách siêu VIP";
-            diemHang = 2000;
+            maHang = "HH0005"; giamGia = 20; moTa = "Hạng Kim Cương - Khách siêu VIP"; diemHang = 2000;
         } else {
-            maHang = "HH0001";
-            giamGia = 0;
-            moTa = "Hạng Đồng - Mới tham gia";
-            diemHang = 0;
+            maHang = "HH0001"; giamGia = 0; moTa = "Hạng Đồng - Mới tham gia"; diemHang = 0;
         }
 
         HangKhachHang hangKH = new HangKhachHang(maHang,moTa,giamGia,diemHang);
