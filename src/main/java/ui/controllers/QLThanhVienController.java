@@ -69,6 +69,11 @@ public class QLThanhVienController {
                 }
             }
         });
+        txtTimKiem.textProperty().addListener((observable, oldValue, newValue) -> {
+            filterMembers(newValue);
+        });
+        txtTimKiem.setOnAction(e -> filterMembers(txtTimKiem.getText()));
+
         Platform.runLater(() -> addShortcuts(txtTimKiem.getScene()));
         Tooltip tipFind = new Tooltip("Tìm kiếm thành viên (Ctrl + F)");
 
@@ -91,13 +96,30 @@ public class QLThanhVienController {
     // DANH SÁCH NHÂN VIÊN
     // =========================
     private void loadNhanVienCards() {
-        menuFlow.getChildren().clear();
         dsKhachHang = khDAO.getAll();
+        loadNhanVienCards(dsKhachHang);
+    }
 
-        for (KhachHang kh : dsKhachHang) {
+    private void loadNhanVienCards(List<KhachHang> list) {
+        menuFlow.getChildren().clear();
+        for (KhachHang kh : list) {
             VBox card = taoTheKhachHang(kh);
             menuFlow.getChildren().add(card);
         }
+    }
+
+    private void filterMembers(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            loadNhanVienCards(dsKhachHang);
+            return;
+        }
+        String lowerQuery = query.toLowerCase().trim();
+        List<KhachHang> filteredList = dsKhachHang.stream()
+                .filter(kh -> kh.getMaKhachHang().toLowerCase().contains(lowerQuery) ||
+                              kh.getTenKhachHang().toLowerCase().contains(lowerQuery) ||
+                              kh.getSdt().contains(lowerQuery))
+                .toList();
+        loadNhanVienCards(filteredList);
     }
 
     private VBox taoTheKhachHang(KhachHang kh) {
