@@ -1,5 +1,6 @@
 package dao;
 
+import infrastructure.db.DatabaseConfig;
 import infrastructure.db.JpaConfig;
 import entity.*;
 
@@ -12,25 +13,25 @@ import jakarta.persistence.EntityManager;
 
 public class HoaDonDAO {
 
-    // Thông tin kết nối DB (dùng DriverManager để tạo connection độc lập, tránh leak Hibernate pool)
-    private static final String DB_URL  = "jdbc:mariadb://localhost:3307/qlnh_ver2"
-            + "?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Ho_Chi_Minh";
-    private static final String DB_USER = "root";
-    private static final String DB_PASS = "280405";
-
     /**
      * Trả về một JDBC Connection mới, độc lập với Hibernate connection pool.
      * Caller PHẢI đóng connection này (dùng try-with-resources).
      * Không dùng EntityManager.unwrap() vì sẽ leak EM và chiếm slot trong pool.
+     *
+     * Thông tin kết nối được đọc từ db.properties qua {@link DatabaseConfig}.
+     * Không có credential nào được hardcode tại đây.
      */
     private static Connection getJpaConnection() throws SQLException {
-        Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+        Connection conn = DriverManager.getConnection(
+                DatabaseConfig.getUrl(),
+                DatabaseConfig.getUser(),
+                DatabaseConfig.getPassword());
         conn.setAutoCommit(true); // đảm bảo INSERT/UPDATE/DELETE commit ngay
         return conn;
     }
 
     // =====================================================================
-    //                          MAPPER FULL
+    // MAPPER FULL
     // =====================================================================
     private static HoaDon mapFullHoaDon(ResultSet rs) throws SQLException {
 
@@ -75,7 +76,7 @@ public class HoaDonDAO {
             LoaiBan lb = new LoaiBan();
             lb.setMaLoaiBan(rs.getString("maLoaiBan"));
             lb.setTenLoaiBan(rs.getString("tenLoaiBan"));
-            lb.setSoLuong(rs.getInt("soLuong"));   // ✔ FIXED (không còn getSoLuong)
+            lb.setSoLuong(rs.getInt("soLuong")); // ✔ FIXED (không còn getSoLuong)
 
             ban = new Ban();
             ban.setMaBan(rs.getString("maBan"));
@@ -130,35 +131,34 @@ public class HoaDonDAO {
     }
 
     // =====================================================================
-    //                      SELECT FULL – DÙNG CHUNG
+    // SELECT FULL – DÙNG CHUNG
     // =====================================================================
     private static final String SELECT_FULL = """
-        
-            SELECT hd.*,
-               kh.tenKH, kh.sdt AS sdtKH, kh.gioiTinh AS gioiTinhKH, kh.diemTichLuy,
-               kh.maHang,
-               hh.diemHang, hh.giamGia AS giamGiaHang, hh.moTa AS moTaHang,
-        
-               nv.tenNV, nv.sdt AS sdtNV,
-               b.trangThai AS trangThaiBan, b.maKhuVuc, b.maLoaiBan,
-               kv.tenKhuVuc,
-               lb.tenLoaiBan, lb.soLuong,
-               km.tenKM, km.uuDai ,km.phanTramGiamGia,
-               sk.tenSK, sk.gia AS giaSK
-        FROM HoaDon hd
-        LEFT JOIN KhachHang kh ON hd.maKH = kh.maKH
-        LEFT JOIN HangKhachHang hh ON kh.maHang = hh.maHang
-        LEFT JOIN NhanVien nv ON hd.maNV = nv.maNV
-        LEFT JOIN Ban b ON hd.maBan = b.maBan
-        LEFT JOIN KhuVuc kv ON b.maKhuVuc = kv.maKhuVuc
-        LEFT JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan
-        LEFT JOIN KhuyenMai km ON hd.maKM = km.maKM
-        LEFT JOIN SuKien sk ON hd.maSK = sk.maSK
-        """;
 
+                SELECT hd.*,
+                   kh.tenKH, kh.sdt AS sdtKH, kh.gioiTinh AS gioiTinhKH, kh.diemTichLuy,
+                   kh.maHang,
+                   hh.diemHang, hh.giamGia AS giamGiaHang, hh.moTa AS moTaHang,
+
+                   nv.tenNV, nv.sdt AS sdtNV,
+                   b.trangThai AS trangThaiBan, b.maKhuVuc, b.maLoaiBan,
+                   kv.tenKhuVuc,
+                   lb.tenLoaiBan, lb.soLuong,
+                   km.tenKM, km.uuDai ,km.phanTramGiamGia,
+                   sk.tenSK, sk.gia AS giaSK
+            FROM HoaDon hd
+            LEFT JOIN KhachHang kh ON hd.maKH = kh.maKH
+            LEFT JOIN HangKhachHang hh ON kh.maHang = hh.maHang
+            LEFT JOIN NhanVien nv ON hd.maNV = nv.maNV
+            LEFT JOIN Ban b ON hd.maBan = b.maBan
+            LEFT JOIN KhuVuc kv ON b.maKhuVuc = kv.maKhuVuc
+            LEFT JOIN LoaiBan lb ON b.maLoaiBan = lb.maLoaiBan
+            LEFT JOIN KhuyenMai km ON hd.maKM = km.maKM
+            LEFT JOIN SuKien sk ON hd.maSK = sk.maSK
+            """;
 
     // =====================================================================
-    //                              GET ALL
+    // GET ALL
     // =====================================================================
     public static List<HoaDon> getAll() {
         List<HoaDon> ds = new ArrayList<>();
@@ -166,8 +166,8 @@ public class HoaDonDAO {
         String sql = SELECT_FULL;
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next())
                 ds.add(mapFullHoaDon(rs));
@@ -179,26 +179,25 @@ public class HoaDonDAO {
         return ds;
     }
 
-
     // =====================================================================
-    //                          GET NGÀY HÔM NAY
+    // GET NGÀY HÔM NAY
     // =====================================================================
     public static List<HoaDon> getAllNgayHomNay() {
         List<HoaDon> ds = new ArrayList<>();
 
         String sql = SELECT_FULL + """
-            WHERE (
-                (hd.kieuDatBan = 1 AND hd.tgCheckin >= CURDATE()
-                                   AND hd.tgCheckin < DATE_ADD(CURDATE(), INTERVAL 1 DAY))
-                OR
-                (hd.kieuDatBan = 0 AND hd.tgLapHD >= CURDATE()
-                                   AND hd.tgLapHD < DATE_ADD(CURDATE(), INTERVAL 1 DAY))
-            )
-        """;
+                    WHERE (
+                        (hd.kieuDatBan = 1 AND hd.tgCheckin >= CURDATE()
+                                           AND hd.tgCheckin < DATE_ADD(CURDATE(), INTERVAL 1 DAY))
+                        OR
+                        (hd.kieuDatBan = 0 AND hd.tgLapHD >= CURDATE()
+                                           AND hd.tgLapHD < DATE_ADD(CURDATE(), INTERVAL 1 DAY))
+                    )
+                """;
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next())
                 ds.add(mapFullHoaDon(rs));
@@ -210,16 +209,15 @@ public class HoaDonDAO {
         return ds;
     }
 
-
     // =====================================================================
-    //                              GET BY ID
+    // GET BY ID
     // =====================================================================
     public static HoaDon getByID(String maHD) {
 
         String sql = SELECT_FULL + " WHERE hd.maHD = ?";
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, maHD);
 
@@ -235,9 +233,9 @@ public class HoaDonDAO {
     }
 
     public List<HoaDon> searchHoaDon(String keyword,
-                                     Integer trangThai,
-                                     LocalDate ngay,
-                                     String tenKhuVuc) {
+            Integer trangThai,
+            LocalDate ngay,
+            String tenKhuVuc) {
 
         List<HoaDon> list = new ArrayList<>();
 
@@ -250,8 +248,8 @@ public class HoaDonDAO {
         if (keyword != null && !keyword.isBlank()) {
             String kw = keyword.trim();
 
-            boolean isPhone = kw.matches("^0[3-9]\\d{8}$");   // sđt 10 số
-            boolean isMaHD  = kw.toUpperCase().startsWith("HD");
+            boolean isPhone = kw.matches("^0[3-9]\\d{8}$"); // sđt 10 số
+            boolean isMaHD = kw.toUpperCase().startsWith("HD");
 
             if (isMaHD) {
                 sql.append(" AND hd.maHD LIKE ? ");
@@ -263,7 +261,7 @@ public class HoaDonDAO {
                 sql.append(" AND (hd.maHD LIKE ? OR kh.sdt LIKE ? OR kh.tenKH LIKE ? OR b.maBan LIKE ?) ");
                 params.add(kw.toUpperCase() + "%");
                 params.add(kw + "%");
-                params.add("%" + kw + "%");          // tên KH nên contains
+                params.add("%" + kw + "%"); // tên KH nên contains
                 params.add(kw.toUpperCase() + "%");
             }
         }
@@ -300,9 +298,8 @@ public class HoaDonDAO {
         sql.append(" ORDER BY hd.tgLapHD DESC ")
                 .append(" LIMIT 100 ");
 
-
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
 
             for (int i = 0; i < params.size(); i++) {
                 Object p = params.get(i);
@@ -329,10 +326,8 @@ public class HoaDonDAO {
         return list;
     }
 
-
-
     // =====================================================================
-    //                          GET BY NHÂN VIÊN
+    // GET BY NHÂN VIÊN
     // =====================================================================
     public static List<HoaDon> getTheoMaNV(String maNV) {
         List<HoaDon> ds = new ArrayList<>();
@@ -340,7 +335,7 @@ public class HoaDonDAO {
         String sql = SELECT_FULL + " WHERE hd.maNV = ?";
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, maNV);
             ResultSet rs = ps.executeQuery();
@@ -355,24 +350,23 @@ public class HoaDonDAO {
         return ds;
     }
 
-
     // =====================================================================
-    //                   WAITLIST – CHỜ
+    // WAITLIST – CHỜ
     // =====================================================================
     public static List<HoaDon> getAllWaitlistCho() {
 
         List<HoaDon> ds = new ArrayList<>();
 
         String sql = SELECT_FULL + """
-            WHERE hd.kieuDatBan = 0
-              AND hd.trangThai = 0
-              AND hd.maBan LIKE 'W%'
-            ORDER BY hd.maHD DESC
-        """;
+                    WHERE hd.kieuDatBan = 0
+                      AND hd.trangThai = 0
+                      AND hd.maBan LIKE 'W%'
+                    ORDER BY hd.maHD DESC
+                """;
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next())
                 ds.add(mapFullHoaDon(rs));
@@ -413,8 +407,8 @@ public class HoaDonDAO {
                 )""";
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 KhachHang kh = new KhachHang();
@@ -454,9 +448,11 @@ public class HoaDonDAO {
                 hd.setKhuyenMai(km);
                 hd.setSuKien(sk);
                 hd.setTgLapHD(rs.getTimestamp("tgLapHD") != null
-                        ? rs.getTimestamp("tgLapHD").toLocalDateTime() : null);
+                        ? rs.getTimestamp("tgLapHD").toLocalDateTime()
+                        : null);
                 hd.setTgCheckIn(rs.getTimestamp("tgCheckin") != null
-                        ? rs.getTimestamp("tgCheckin").toLocalDateTime() : null);
+                        ? rs.getTimestamp("tgCheckin").toLocalDateTime()
+                        : null);
                 hd.setKieuDatBan(rs.getBoolean("kieuDatBan"));
                 hd.setTrangthai(rs.getInt("trangThai"));
                 hd.setSoLuong(rs.getInt("soLuong"));
@@ -472,71 +468,67 @@ public class HoaDonDAO {
         return ds;
     }
 
-
-
-
-
     // =====================================================================
-    //        CÁC HÀM INSERT – UPDATE – DELETE (GIỮ NGUYÊN LOGIC)
+    // CÁC HÀM INSERT – UPDATE – DELETE (GIỮ NGUYÊN LOGIC)
     // =====================================================================
 
     public static boolean insert(HoaDon hd) {
         // Dùng JPA EntityManager + explicit transaction để đảm bảo commit ngay lập tức,
         // tránh vấn đề autocommit=false của Hibernate khi dùng JDBC thô.
         String sql = """
-            INSERT INTO HoaDon(
-                maHD, maKH, maNV, maBan, maKM, maSK, tgLapHD,
-                tgCheckin, tgCheckout, kieuThanhToan, kieuDatBan,
-                trangThai, soLuong, moTa
-            )
-            VALUES (:maHD, :maKH, :maNV, :maBan, :maKM, :maSK, :tgLapHD,
-                    :tgCheckin, :tgCheckout, :kieuThanhToan, :kieuDatBan,
-                    :trangThai, :soLuong, :moTa)
-        """;
+                    INSERT INTO HoaDon(
+                        maHD, maKH, maNV, maBan, maKM, maSK, tgLapHD,
+                        tgCheckin, tgCheckout, kieuThanhToan, kieuDatBan,
+                        trangThai, soLuong, moTa
+                    )
+                    VALUES (:maHD, :maKH, :maNV, :maBan, :maKM, :maSK, :tgLapHD,
+                            :tgCheckin, :tgCheckout, :kieuThanhToan, :kieuDatBan,
+                            :trangThai, :soLuong, :moTa)
+                """;
 
         jakarta.persistence.EntityTransaction tx = null;
         try (EntityManager em = JpaConfig.getEntityManagerFactory().createEntityManager()) {
             tx = em.getTransaction();
             tx.begin();
             em.createNativeQuery(sql)
-                .setParameter("maHD",          hd.getMaHD())
-                .setParameter("maKH",          hd.getKhachHang()  != null ? hd.getKhachHang().getMaKhachHang()  : null)
-                .setParameter("maNV",          hd.getNhanVien()   != null ? hd.getNhanVien().getMaNV()           : null)
-                .setParameter("maBan",         hd.getBan()        != null ? hd.getBan().getMaBan()              : null)
-                .setParameter("maKM",          hd.getKhuyenMai()  != null ? hd.getKhuyenMai().getMaKM()         : null)
-                .setParameter("maSK",          hd.getSuKien()     != null ? hd.getSuKien().getMaSK()            : null)
-                .setParameter("tgLapHD",       hd.getTgLapHD())
-                .setParameter("tgCheckin",     hd.getTgCheckIn())
-                .setParameter("tgCheckout",    hd.getTgCheckOut())
-                .setParameter("kieuThanhToan", hd.isKieuThanhToan())
-                .setParameter("kieuDatBan",    hd.isKieuDatBan())
-                .setParameter("trangThai",     hd.getTrangthai())
-                .setParameter("soLuong",       hd.getSoLuong())
-                .setParameter("moTa",          hd.getMoTa())
-                .executeUpdate();
+                    .setParameter("maHD", hd.getMaHD())
+                    .setParameter("maKH", hd.getKhachHang() != null ? hd.getKhachHang().getMaKhachHang() : null)
+                    .setParameter("maNV", hd.getNhanVien() != null ? hd.getNhanVien().getMaNV() : null)
+                    .setParameter("maBan", hd.getBan() != null ? hd.getBan().getMaBan() : null)
+                    .setParameter("maKM", hd.getKhuyenMai() != null ? hd.getKhuyenMai().getMaKM() : null)
+                    .setParameter("maSK", hd.getSuKien() != null ? hd.getSuKien().getMaSK() : null)
+                    .setParameter("tgLapHD", hd.getTgLapHD())
+                    .setParameter("tgCheckin", hd.getTgCheckIn())
+                    .setParameter("tgCheckout", hd.getTgCheckOut())
+                    .setParameter("kieuThanhToan", hd.isKieuThanhToan())
+                    .setParameter("kieuDatBan", hd.isKieuDatBan())
+                    .setParameter("trangThai", hd.getTrangthai())
+                    .setParameter("soLuong", hd.getSoLuong())
+                    .setParameter("moTa", hd.getMoTa())
+                    .executeUpdate();
             tx.commit();
             System.out.println("Insert HoaDon thành công: " + hd.getMaHD());
             return true;
         } catch (Exception e) {
-            if (tx != null && tx.isActive()) tx.rollback();
+            if (tx != null && tx.isActive())
+                tx.rollback();
             System.err.println("Lỗi insert HoaDon: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
-
     public static boolean update(HoaDon hd) {
         String sql = """
-            UPDATE HoaDon SET
-                maKH=?, maNV=?, maBan=?, maKM=?, maSK=?, tgLapHD=?,
-                tgCheckin=?, tgCheckout=?, kieuThanhToan=?, kieuDatBan=?,
-                trangThai=?, soLuong=?, moTa=?
-            WHERE maHD=?
-        """;
+                    UPDATE HoaDon SET
+                        maKH=?, maNV=?, maBan=?, maKM=?, maSK=?, tgLapHD=?,
+                        tgCheckin=?, tgCheckout=?, kieuThanhToan=?, kieuDatBan=?,
+                        trangThai=?, soLuong=?, moTa=?
+                    WHERE maHD=?
+                """;
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, hd.getKhachHang() != null ? hd.getKhachHang().getMaKhachHang() : null);
             ps.setString(2, hd.getNhanVien() != null ? hd.getNhanVien().getMaNV() : null);
@@ -563,12 +555,11 @@ public class HoaDonDAO {
         }
     }
 
-
     public static boolean delete(String maHD) {
         String sql = "DELETE FROM HoaDon WHERE maHD=?";
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, maHD);
             return ps.executeUpdate() > 0;
@@ -579,28 +570,28 @@ public class HoaDonDAO {
         }
     }
 
-
     // =====================================================================
-    //                    LẤY MÃ HÓA ĐƠN CUỐI (GIỮ NGUYÊN)
+    // LẤY MÃ HÓA ĐƠN CUỐI (GIỮ NGUYÊN)
     // =====================================================================
     public static String getMaHDCuoiTheoNgay(String ca, String ngay) {
         String prefix = "HD" + ca + ngay;
 
         String sql = """
-            SELECT maHD
-            FROM HoaDon
-            WHERE maHD LIKE ?
-            ORDER BY maHD DESC
-            LIMIT 1
-        """;
+                    SELECT maHD
+                    FROM HoaDon
+                    WHERE maHD LIKE ?
+                    ORDER BY maHD DESC
+                    LIMIT 1
+                """;
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, prefix + "%");
 
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) return rs.getString("maHD");
+            if (rs.next())
+                return rs.getString("maHD");
 
         } catch (SQLException e) {
             System.err.println("Lỗi getMaHDCuoiTheoNgay: " + e.getMessage());
@@ -610,85 +601,85 @@ public class HoaDonDAO {
     }
 
     // =====================================================================
-//                     THỐNG KÊ (ĐÃ THÊM LOẠI BÀN)
-// =====================================================================
+    // THỐNG KÊ (ĐÃ THÊM LOẠI BÀN)
+    // =====================================================================
     public static Map<HoaDon, Double> getAllForThongKe() {
         Map<HoaDon, Double> ds = new LinkedHashMap<>();
 
         String sql = """
-        WITH ChiTiet_TinhTien AS (
-            SELECT
-                hd.maHD,
-                cthd.maMon,
-                cthd.soLuong,
-                m.loaiMon,
-                m.giaGoc,
-                COALESCE(
-                    (
-                        SELECT p1.phanTramLoi
-                        FROM PhanTramGiaBan p1
-                        WHERE p1.maMon = m.maMon
-                          AND p1.ngayApDung <= hd.tgLapHD
-                        ORDER BY p1.ngayApDung DESC
-                        LIMIT 1
+                    WITH ChiTiet_TinhTien AS (
+                        SELECT
+                            hd.maHD,
+                            cthd.maMon,
+                            cthd.soLuong,
+                            m.loaiMon,
+                            m.giaGoc,
+                            COALESCE(
+                                (
+                                    SELECT p1.phanTramLoi
+                                    FROM PhanTramGiaBan p1
+                                    WHERE p1.maMon = m.maMon
+                                      AND p1.ngayApDung <= hd.tgLapHD
+                                    ORDER BY p1.ngayApDung DESC
+                                    LIMIT 1
+                                ),
+                                (
+                                    SELECT p2.phanTramLoi
+                                    FROM PhanTramGiaBan p2
+                                    WHERE p2.maLoaiMon = m.loaiMon
+                                      AND p2.ngayApDung <= hd.tgLapHD
+                                    ORDER BY p2.ngayApDung DESC
+                                    LIMIT 1
+                                ),
+                                0
+                            ) AS phanTramLoi
+                        FROM HoaDon hd
+                        JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD
+                        JOIN Mon m ON cthd.maMon = m.maMon
                     ),
-                    (
-                        SELECT p2.phanTramLoi
-                        FROM PhanTramGiaBan p2
-                        WHERE p2.maLoaiMon = m.loaiMon
-                          AND p2.ngayApDung <= hd.tgLapHD
-                        ORDER BY p2.ngayApDung DESC
-                        LIMIT 1
-                    ),
-                    0
-                ) AS phanTramLoi
-            FROM HoaDon hd
-            JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD
-            JOIN Mon m ON cthd.maMon = m.maMon
-        ),
-        TongTien AS (
-            SELECT
-                hd.maHD,
-                SUM(COALESCE(ct.soLuong * ct.giaGoc * (1 + ct.phanTramLoi / 100.0), 0)) AS tongTienMon,
-                COALESCE(MAX(sk.gia), 0) AS giaSuKien
-            FROM HoaDon hd
-            LEFT JOIN ChiTiet_TinhTien ct ON hd.maHD = ct.maHD
-            LEFT JOIN SuKien sk ON sk.maSK = hd.maSK
-            GROUP BY hd.maHD
-        )
-        SELECT
-            hd.*, 
-            b.maBan,
-            b.maLoaiBan,
-            lb.tenLoaiBan,
-            lb.soLuong,
-            kv.maKhuVuc,
-            kv.tenKhuVuc,
-            (t.tongTienMon + t.giaSuKien) AS tongTienTruoc,
-            ((COALESCE(kh.hangGiam, 0) + COALESCE(km.phanTramGiamGia, 0)) / 100.0)
-                * (t.tongTienMon + t.giaSuKien) AS tongTienKhuyenMai,
-            (t.tongTienMon + t.giaSuKien) * 0.1 AS thue,
-            (t.tongTienMon + t.giaSuKien)
-              - ((COALESCE(kh.hangGiam, 0) + COALESCE(km.phanTramGiamGia, 0)) / 100.0)
-                * (t.tongTienMon + t.giaSuKien)
-              + ((t.tongTienMon + t.giaSuKien) * 0.1) AS tongTienSau
-        FROM HoaDon hd
-        JOIN TongTien t ON hd.maHD = t.maHD
-        LEFT JOIN KhuyenMai km ON km.maKM = hd.maKM
-        LEFT JOIN (
-            SELECT kh.maKH, hh.giamGia AS hangGiam
-            FROM KhachHang kh
-            JOIN HangKhachHang hh ON kh.maHang = hh.maHang
-        ) kh ON kh.maKH = hd.maKH
-        JOIN Ban b ON b.maBan = hd.maBan
-        JOIN LoaiBan lb ON lb.maLoaiBan = b.maLoaiBan
-        JOIN KhuVuc kv ON kv.maKhuVuc = b.maKhuVuc
-        ORDER BY hd.tgLapHD
-    """;
+                    TongTien AS (
+                        SELECT
+                            hd.maHD,
+                            SUM(COALESCE(ct.soLuong * ct.giaGoc * (1 + ct.phanTramLoi / 100.0), 0)) AS tongTienMon,
+                            COALESCE(MAX(sk.gia), 0) AS giaSuKien
+                        FROM HoaDon hd
+                        LEFT JOIN ChiTiet_TinhTien ct ON hd.maHD = ct.maHD
+                        LEFT JOIN SuKien sk ON sk.maSK = hd.maSK
+                        GROUP BY hd.maHD
+                    )
+                    SELECT
+                        hd.*,
+                        b.maBan,
+                        b.maLoaiBan,
+                        lb.tenLoaiBan,
+                        lb.soLuong,
+                        kv.maKhuVuc,
+                        kv.tenKhuVuc,
+                        (t.tongTienMon + t.giaSuKien) AS tongTienTruoc,
+                        ((COALESCE(kh.hangGiam, 0) + COALESCE(km.phanTramGiamGia, 0)) / 100.0)
+                            * (t.tongTienMon + t.giaSuKien) AS tongTienKhuyenMai,
+                        (t.tongTienMon + t.giaSuKien) * 0.1 AS thue,
+                        (t.tongTienMon + t.giaSuKien)
+                          - ((COALESCE(kh.hangGiam, 0) + COALESCE(km.phanTramGiamGia, 0)) / 100.0)
+                            * (t.tongTienMon + t.giaSuKien)
+                          + ((t.tongTienMon + t.giaSuKien) * 0.1) AS tongTienSau
+                    FROM HoaDon hd
+                    JOIN TongTien t ON hd.maHD = t.maHD
+                    LEFT JOIN KhuyenMai km ON km.maKM = hd.maKM
+                    LEFT JOIN (
+                        SELECT kh.maKH, hh.giamGia AS hangGiam
+                        FROM KhachHang kh
+                        JOIN HangKhachHang hh ON kh.maHang = hh.maHang
+                    ) kh ON kh.maKH = hd.maKH
+                    JOIN Ban b ON b.maBan = hd.maBan
+                    JOIN LoaiBan lb ON lb.maLoaiBan = b.maLoaiBan
+                    JOIN KhuVuc kv ON kv.maKhuVuc = b.maKhuVuc
+                    ORDER BY hd.tgLapHD
+                """;
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
 
@@ -713,11 +704,14 @@ public class HoaDonDAO {
                 HoaDon hd = new HoaDon();
                 hd.setMaHD(rs.getString("maHD"));
                 hd.setTgLapHD(rs.getTimestamp("tgLapHD") != null
-                        ? rs.getTimestamp("tgLapHD").toLocalDateTime() : null);
+                        ? rs.getTimestamp("tgLapHD").toLocalDateTime()
+                        : null);
                 hd.setTgCheckIn(rs.getTimestamp("tgCheckIn") != null
-                        ? rs.getTimestamp("tgCheckIn").toLocalDateTime() : null);
+                        ? rs.getTimestamp("tgCheckIn").toLocalDateTime()
+                        : null);
                 hd.setTgCheckOut(rs.getTimestamp("tgCheckOut") != null
-                        ? rs.getTimestamp("tgCheckOut").toLocalDateTime() : null);
+                        ? rs.getTimestamp("tgCheckOut").toLocalDateTime()
+                        : null);
                 hd.setTrangthai(rs.getInt("trangThai"));
                 hd.setSoLuong(rs.getInt("soLuong"));
                 hd.setBan(b);
@@ -738,82 +732,82 @@ public class HoaDonDAO {
         Map<HoaDon, Double> ds = new LinkedHashMap<>();
 
         String sql = """
-        WITH ChiTiet_TinhTien AS (
-            SELECT
-                hd.maHD,
-                cthd.maMon,
-                cthd.soLuong,
-                m.loaiMon,
-                m.giaGoc,
-                COALESCE(
-                    (
-                        SELECT p1.phanTramLoi
-                        FROM PhanTramGiaBan p1
-                        WHERE p1.maMon = m.maMon
-                          AND p1.ngayApDung <= hd.tgLapHD
-                        ORDER BY p1.ngayApDung DESC
-                        LIMIT 1
+                    WITH ChiTiet_TinhTien AS (
+                        SELECT
+                            hd.maHD,
+                            cthd.maMon,
+                            cthd.soLuong,
+                            m.loaiMon,
+                            m.giaGoc,
+                            COALESCE(
+                                (
+                                    SELECT p1.phanTramLoi
+                                    FROM PhanTramGiaBan p1
+                                    WHERE p1.maMon = m.maMon
+                                      AND p1.ngayApDung <= hd.tgLapHD
+                                    ORDER BY p1.ngayApDung DESC
+                                    LIMIT 1
+                                ),
+                                (
+                                    SELECT p2.phanTramLoi
+                                    FROM PhanTramGiaBan p2
+                                    WHERE p2.maLoaiMon = m.loaiMon
+                                      AND p2.ngayApDung <= hd.tgLapHD
+                                    ORDER BY p2.ngayApDung DESC
+                                    LIMIT 1
+                                ),
+                                0
+                            ) AS phanTramLoi
+                        FROM HoaDon hd
+                        JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD
+                        JOIN Mon m ON cthd.maMon = m.maMon
                     ),
-                    (
-                        SELECT p2.phanTramLoi
-                        FROM PhanTramGiaBan p2
-                        WHERE p2.maLoaiMon = m.loaiMon
-                          AND p2.ngayApDung <= hd.tgLapHD
-                        ORDER BY p2.ngayApDung DESC
-                        LIMIT 1
-                    ),
-                    0
-                ) AS phanTramLoi
-            FROM HoaDon hd
-            JOIN ChiTietHoaDon cthd ON hd.maHD = cthd.maHD
-            JOIN Mon m ON cthd.maMon = m.maMon
-        ),
-        TongTien AS (
-            SELECT
-                hd.maHD,
-                SUM(COALESCE(ct.soLuong * ct.giaGoc * (1 + ct.phanTramLoi / 100.0), 0)) AS tongTienMon,
-                COALESCE(MAX(sk.gia), 0) AS giaSuKien
-            FROM HoaDon hd
-            LEFT JOIN ChiTiet_TinhTien ct ON hd.maHD = ct.maHD
-            LEFT JOIN SuKien sk ON sk.maSK = hd.maSK
-            GROUP BY hd.maHD
-        )
-        SELECT
-            hd.*, 
-            b.maBan,
-            b.maLoaiBan,
-            lb.tenLoaiBan,
-            lb.soLuong,
-            kv.maKhuVuc,
-            kv.tenKhuVuc,
-            (t.tongTienMon + t.giaSuKien) AS tongTienTruoc,
-            ((COALESCE(kh.hangGiam, 0) + COALESCE(km.phanTramGiamGia, 0)) / 100.0)
-                * (t.tongTienMon + t.giaSuKien) AS tongTienKhuyenMai,
-            (t.tongTienMon + t.giaSuKien) * 0.1 AS thue,
-            (t.tongTienMon + t.giaSuKien)
-              - ((COALESCE(kh.hangGiam, 0) + COALESCE(km.phanTramGiamGia, 0)) / 100.0)
-                * (t.tongTienMon + t.giaSuKien)
-              + ((t.tongTienMon + t.giaSuKien) * 0.1) AS tongTienSau
-        FROM HoaDon hd
+                    TongTien AS (
+                        SELECT
+                            hd.maHD,
+                            SUM(COALESCE(ct.soLuong * ct.giaGoc * (1 + ct.phanTramLoi / 100.0), 0)) AS tongTienMon,
+                            COALESCE(MAX(sk.gia), 0) AS giaSuKien
+                        FROM HoaDon hd
+                        LEFT JOIN ChiTiet_TinhTien ct ON hd.maHD = ct.maHD
+                        LEFT JOIN SuKien sk ON sk.maSK = hd.maSK
+                        GROUP BY hd.maHD
+                    )
+                    SELECT
+                        hd.*,
+                        b.maBan,
+                        b.maLoaiBan,
+                        lb.tenLoaiBan,
+                        lb.soLuong,
+                        kv.maKhuVuc,
+                        kv.tenKhuVuc,
+                        (t.tongTienMon + t.giaSuKien) AS tongTienTruoc,
+                        ((COALESCE(kh.hangGiam, 0) + COALESCE(km.phanTramGiamGia, 0)) / 100.0)
+                            * (t.tongTienMon + t.giaSuKien) AS tongTienKhuyenMai,
+                        (t.tongTienMon + t.giaSuKien) * 0.1 AS thue,
+                        (t.tongTienMon + t.giaSuKien)
+                          - ((COALESCE(kh.hangGiam, 0) + COALESCE(km.phanTramGiamGia, 0)) / 100.0)
+                            * (t.tongTienMon + t.giaSuKien)
+                          + ((t.tongTienMon + t.giaSuKien) * 0.1) AS tongTienSau
+                    FROM HoaDon hd
 
-        JOIN TongTien t ON hd.maHD = t.maHD
-        LEFT JOIN KhuyenMai km ON km.maKM = hd.maKM
-        LEFT JOIN (
-            SELECT kh.maKH, hh.giamGia AS hangGiam
-            FROM KhachHang kh
-            JOIN HangKhachHang hh ON kh.maHang = hh.maHang
-        ) kh ON kh.maKH = hd.maKH
-        JOIN Ban b ON b.maBan = hd.maBan
-        JOIN LoaiBan lb ON lb.maLoaiBan = b.maLoaiBan
-        JOIN KhuVuc kv ON kv.maKhuVuc = b.maKhuVuc
-        WHERE hd.tgCheckin >= CURDATE()
-        AND hd.tgCheckin < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
-        ORDER BY hd.tgLapHD
-    """;
+                    JOIN TongTien t ON hd.maHD = t.maHD
+                    LEFT JOIN KhuyenMai km ON km.maKM = hd.maKM
+                    LEFT JOIN (
+                        SELECT kh.maKH, hh.giamGia AS hangGiam
+                        FROM KhachHang kh
+                        JOIN HangKhachHang hh ON kh.maHang = hh.maHang
+                    ) kh ON kh.maKH = hd.maKH
+                    JOIN Ban b ON b.maBan = hd.maBan
+                    JOIN LoaiBan lb ON lb.maLoaiBan = b.maLoaiBan
+                    JOIN KhuVuc kv ON kv.maKhuVuc = b.maKhuVuc
+                    WHERE hd.tgCheckin >= CURDATE()
+                    AND hd.tgCheckin < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+                    ORDER BY hd.tgLapHD
+                """;
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
 
@@ -838,9 +832,11 @@ public class HoaDonDAO {
                 HoaDon hd = new HoaDon();
                 hd.setMaHD(rs.getString("maHD"));
                 hd.setTgLapHD(rs.getTimestamp("tgLapHD") != null
-                        ? rs.getTimestamp("tgLapHD").toLocalDateTime() : null);
+                        ? rs.getTimestamp("tgLapHD").toLocalDateTime()
+                        : null);
                 hd.setTgCheckOut(rs.getTimestamp("tgCheckOut") != null
-                        ? rs.getTimestamp("tgCheckOut").toLocalDateTime() : null);
+                        ? rs.getTimestamp("tgCheckOut").toLocalDateTime()
+                        : null);
                 hd.setTrangthai(rs.getInt("trangThai"));
                 hd.setSoLuong(rs.getInt("soLuong"));
                 hd.setBan(b);
@@ -862,10 +858,10 @@ public class HoaDonDAO {
         List<HoaDon> ds = new ArrayList<>();
 
         String sql = SELECT_FULL + " WHERE hd.trangThai = ? AND b.maBan LIKE 'B%'";
-        //AND hd.tgCheckin > NOW()
+        // AND hd.tgCheckin > NOW()
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, trangThai);
             try (ResultSet rs = ps.executeQuery()) {
@@ -880,29 +876,30 @@ public class HoaDonDAO {
 
         return ds;
     }
+
     public static List<HoaDon> getHoaDonTuHomNayTroVeSau() {
         List<HoaDon> ds = new ArrayList<>();
 
         String sql = SELECT_FULL + """
-        WHERE
-            b.maBan like 'B%' and
-        (
-            (hd.trangThai = 0
-             AND hd.tgLapHD IS NOT NULL
-             AND CAST(hd.tgLapHD AS DATE) >= CURDATE()
-            )
-            OR
-            (hd.trangThai <> 0
-             AND hd.tgCheckin IS NOT NULL
-             AND CAST(hd.tgCheckin AS DATE) >= CURDATE()
-            )
-        )
-        ORDER BY COALESCE(hd.tgCheckin, hd.tgLapHD) DESC
-    """;
+                    WHERE
+                        b.maBan like 'B%' and
+                    (
+                        (hd.trangThai = 0
+                         AND hd.tgLapHD IS NOT NULL
+                         AND CAST(hd.tgLapHD AS DATE) >= CURDATE()
+                        )
+                        OR
+                        (hd.trangThai <> 0
+                         AND hd.tgCheckin IS NOT NULL
+                         AND CAST(hd.tgCheckin AS DATE) >= CURDATE()
+                        )
+                    )
+                    ORDER BY COALESCE(hd.tgCheckin, hd.tgLapHD) DESC
+                """;
 
         try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 ds.add(mapFullHoaDon(rs));
@@ -916,15 +913,12 @@ public class HoaDonDAO {
         return ds;
     }
 
-
-
     public static List<HoaDon> getAllDatTruoc() {
-        return getAllTrangThai(0);   // 0 = Đặt trước
+        return getAllTrangThai(0); // 0 = Đặt trước
     }
 
     public static List<HoaDon> getAllDaNhan() {
-        return getAllTrangThai(1);   // 1 = Đã nhận
+        return getAllTrangThai(1); // 1 = Đã nhận
     }
-
 
 }

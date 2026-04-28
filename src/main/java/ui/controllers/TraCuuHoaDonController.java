@@ -6,7 +6,6 @@
 
 package ui.controllers;
 
-import connectDB.connectDB;
 import dao.HoaDonDAO;
 import dao.KhachHangDAO;
 import dao.ChiTietHDDAO;
@@ -95,10 +94,6 @@ public class TraCuuHoaDonController {
 
     @FXML
     public void initialize() {
-        if (!ketNoiDatabase()) {
-            hienThiThongBaoLoi("Không thể kết nối database. Vui lòng kiểm tra kết nối.");
-            return;
-        }
         khoiTaoTrangThai();
         khoiTaoComboBox();
         khoiTaoDatePicker();
@@ -112,7 +107,6 @@ public class TraCuuHoaDonController {
         Tooltip.install(btnXoaTrang, tipClear);
         Tooltip tipPrint = new Tooltip("In nhanh hóa đơn(Ctrl + P)");
         Tooltip.install(confirm_btn, tipPrint);
-
     }
 
     private void addShortcuts(Scene scene) {
@@ -122,19 +116,6 @@ public class TraCuuHoaDonController {
         scene.getAccelerators().put(ctrlL, () -> xoaTrangBoLoc());
         KeyCombination ctrlP = new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN);
         scene.getAccelerators().put(ctrlP, () -> HoaDonIn.previewHoaDon(hoaDonSelected));
-    }
-
-    // KẾT NỐI DB
-    private boolean ketNoiDatabase() {
-        try {
-            connectDB.getInstance().connect();
-            System.out.println("Kết nối database thành công");
-            return true;
-        } catch (Exception e) {
-            System.err.println("Lỗi kết nối database: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
     }
 
     // KHỞI TẠO CONTROL

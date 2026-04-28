@@ -1,6 +1,5 @@
 package ui.controllers;
 
-import connectDB.connectDB;
 import dao.*;
 import entity.*;
 import javafx.fxml.FXML;
