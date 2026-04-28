@@ -1,8 +1,8 @@
 package ui.controllers;
 
-import dao.ChiTietHDDAO;
+import core.dto.PhieuKetCaDTO;
+import core.service.PhieuKetCaService;
 import dao.HoaDonDAO;
-import dao.PhieuKetCaDAO;
 import entity.ChiTietHoaDon;
 import entity.HoaDon;
 import entity.NhanVien;
@@ -42,6 +42,7 @@ public class BanGiaoCaController {
     @FXML
     private Button btnKetCa;
 
+    private PhieuKetCaService phieuKetCaService = new PhieuKetCaService();
     private HoaDonDAO hoaDonDAO = new HoaDonDAO();
     private NhanVien nhanVien;
     private LocalDateTime thoiGianVaoCa;
@@ -215,8 +216,7 @@ public class BanGiaoCaController {
     private void KiemTraTruocKetCa() {
         if (nhanVien == null || thoiGianVaoCa == null) return;
 
-        PhieuKetCaDAO phieuKCDAO = new PhieuKetCaDAO();
-        String maPhieu = tuSinhMaPhieuKC();
+        String maPhieu = phieuKetCaService.generateMaPhieu(thoiGianVaoCa);
 
 //        if (isEmpty(txtsLHD, "Số hóa đơn không được để trống!")) return;
         if (isEmpty(txtSoTienMat, "Số tiền mặt không được để trống!")) return;
@@ -272,21 +272,21 @@ public class BanGiaoCaController {
         }
 
 
-        PhieuKetCa phieu = new PhieuKetCa(
-                maPhieu,
-                nhanVien,
-                ca,
-                soHoaDon,
-                tongTM,
-                tongCK,
-                chenhLech,
-                LocalDateTime.now(),
-                thoiGianVaoCa,
-                moTaCuoi
-        );
+        PhieuKetCaDTO phieu = PhieuKetCaDTO.builder()
+                .maPhieu(maPhieu)
+                .maNV(nhanVien.getMaNV())
+                .ca(ca)
+                .soHoaDon(soHoaDon)
+                .tienMat(tongTM)
+                .tienCK(tongCK)
+                .tienChenhLech(chenhLech)
+                .ngayKetCa(LocalDateTime.now())
+                .tgLogIn(thoiGianVaoCa)
+                .moTa(moTaCuoi)
+                .build();
         boolean answer = ConfirmCus.show("Xác nhận", "Xác nhận kết ca");
         if (answer) {
-            boolean success = new PhieuKetCaDAO().insert(phieu);
+            boolean success = phieuKetCaService.insert(phieu);
             if (success) {
                 AlertCus.show("Bàn giao ca", "Đã lưu báo cáo kết ca!");
                 javafx.application.Platform.exit();
@@ -316,23 +316,7 @@ public class BanGiaoCaController {
     }
 
 
-    private String tuSinhMaPhieuKC() {
-        int hour = thoiGianVaoCa.getHour();
-        String ca = (hour < 12) ? "0" : "1";
-
-        String datePart = thoiGianVaoCa.format(DateTimeFormatter.ofPattern("ddMMyy"));
-
-        PhieuKetCaDAO phieuKCDAO = new PhieuKetCaDAO();
-        String maHDCuoi = phieuKCDAO.getMaPhieuKCCuoiTheoNgay(ca, datePart);
-
-        int so = 0;
-        if (maHDCuoi != null) {
-            String phanSo = maHDCuoi.substring(maHDCuoi.length() - 4);
-            so = Integer.parseInt(phanSo);
-        }
-
-        return String.format("MP%s%s%04d", ca, datePart, so + 1);
-    }
+    // Refactored to use service.generateMaPhieu
 
     private void loadHoaDonTrongCaLamTimKiem(String keyword) {
         int slHoaDon = 0;
