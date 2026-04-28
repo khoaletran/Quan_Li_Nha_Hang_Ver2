@@ -8,16 +8,25 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import org.hibernate.Session;
 import jakarta.persistence.EntityManager;
 
 public class HoaDonDAO {
 
-    // Helper: lấy JDBC Connection từ JPA EntityManager (Hibernate)
+    // Thông tin kết nối DB (dùng DriverManager để tạo connection độc lập, tránh leak Hibernate pool)
+    private static final String DB_URL  = "jdbc:mariadb://localhost:3307/qlnh_ver2"
+            + "?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Ho_Chi_Minh";
+    private static final String DB_USER = "root";
+    private static final String DB_PASS = "280405";
+
+    /**
+     * Trả về một JDBC Connection mới, độc lập với Hibernate connection pool.
+     * Caller PHẢI đóng connection này (dùng try-with-resources).
+     * Không dùng EntityManager.unwrap() vì sẽ leak EM và chiếm slot trong pool.
+     */
     private static Connection getJpaConnection() throws SQLException {
-        EntityManager em = JpaConfig.getEntityManagerFactory().createEntityManager();
-        Session session = em.unwrap(Session.class);
-        return session.doReturningWork(connection -> connection);
+        Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+        conn.setAutoCommit(true); // đảm bảo INSERT/UPDATE/DELETE commit ngay
+        return conn;
     }
 
     // =====================================================================

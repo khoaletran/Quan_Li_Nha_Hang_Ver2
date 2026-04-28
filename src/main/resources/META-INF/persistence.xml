@@ -19,7 +19,7 @@
             <property name="hibernate.format_sql" value="true"/>
 
             <!-- Connection Pool Settings (Hibernate built-in pool) -->
-            <property name="hibernate.connection.pool_size" value="10"/>
+            <property name="hibernate.connection.pool_size" value="20"/>
         </properties>
     </persistence-unit>
 </persistence>
