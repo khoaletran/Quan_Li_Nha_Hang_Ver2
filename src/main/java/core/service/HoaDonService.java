@@ -90,7 +90,8 @@ public class HoaDonService {
                 dto.setGiaBanTaiLucLapHD(m.getGiaGoc() * (1 + pt / 100.0));
             }
             dto.setSoLuong(ct.getSoLuong());
-            dto.setThanhTien(ct.getThanhTien());
+            // Tính thanhTien on-the-fly (cột DB thường NULL vì insert không set nó)
+            dto.setThanhTien(thanhTienCt(ct, hd.getTgLapHD()));
             return dto;
         }).collect(Collectors.toList());
     }
@@ -107,8 +108,9 @@ public class HoaDonService {
         HoaDon hd = hoaDonRepo.findById(maHD).orElse(null);
         if (hd == null) return 0;
 
-        double tongTien = cthdRepo.findByMaHD(maHD).stream()
-                .mapToDouble(ChiTietHoaDon::getThanhTien)
+        List<ChiTietHoaDon> items = cthdRepo.findByMaHD(maHD);
+        double tongTien = items.stream()
+                .mapToDouble(ct -> thanhTienCt(ct, hd.getTgLapHD()))
                 .sum();
 
         // Add event fee
@@ -245,7 +247,9 @@ public class HoaDonService {
     // ── Private helpers (accept already-loaded data — no extra DB calls) ──
 
     private double computeTongTienTruoc(HoaDon hd, List<ChiTietHoaDon> items) {
-        double total = items.stream().mapToDouble(ChiTietHoaDon::getThanhTien).sum();
+        double total = items.stream()
+                .mapToDouble(ct -> thanhTienCt(ct, hd.getTgLapHD()))
+                .sum();
         if (hd.getSuKien() != null) total += hd.getSuKien().getGia();
         return total;
     }
@@ -274,6 +278,21 @@ public class HoaDonService {
         Coc coc = cocOpt.get();
         if (coc.isLoaiCoc()) return tongTruoc * coc.getPhanTramCoc() / 100.0;
         return (tongTruoc >= coc.getSoTienCoc() * 10) ? tongTruoc * 0.4 : coc.getSoTienCoc();
+    }
+
+    /**
+     * Tính thành tiền của một dòng ChiTietHoaDon.
+     * Ưu tiên dùng giá trị đã lưu trong DB (thanhTien != null && > 0).
+     * Nếu NULL (insert không set cột này), tính lại từ giaGoc + markup tại thời điểm lập HĐ.
+     */
+    private double thanhTienCt(ChiTietHoaDon ct, java.time.LocalDateTime tgLapHD) {
+        Double stored = ct.getThanhTien();
+        if (stored != null && stored > 0) return stored;
+        // Fallback: compute on-the-fly
+        Mon m = ct.getMon();
+        if (m == null) return 0;
+        int pt = monService.getPhanTramGiaBanTaiNgayLapHD(m, tgLapHD);
+        return m.getGiaGoc() * (1 + pt / 100.0) * ct.getSoLuong();
     }
 
     // ══════════════════════════════════════════════════════════════════════
