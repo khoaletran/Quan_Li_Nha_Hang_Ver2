@@ -173,7 +173,7 @@ public class QLNhanVienController {
         txtTenNV.clear();
         txtSDT.clear();
 //        txtNgayVaoLam.clear();
-        txtNgayVaoLam.setValue(null);
+        txtNgayVaoLam.setValue(LocalDate.now());
         comboChucVu.setValue(null);
         rdoNam.setSelected(false);
         rdoNu.setSelected(false);
@@ -207,8 +207,13 @@ public class QLNhanVienController {
     // HÀM TỰ SINH MÃ
     // =========================
     private String tuSinhMaNV(String maNV) {
-        int so = Integer.parseInt(maNV.substring(2));
-        return String.format("NV%04d", so + 1);
+        if (maNV == null || maNV.length() < 3) return "NV0001";
+        try {
+            int so = Integer.parseInt(maNV.substring(2));
+            return String.format("NV%04d", so + 1);
+        } catch (Exception e) {
+            return "NV0001";
+        }
     }
 
     // =========================
@@ -272,27 +277,57 @@ public class QLNhanVienController {
     private NhanVien taoNhanVienTuForm(String maNV) {
         String tenNV = txtTenNV.getText().trim();
         String sdt = txtSDT.getText().trim();
-//        LocalDate ngayVaoLam = LocalDate.parse(txtNgayVaoLam.getText().trim());
         LocalDate ngayVaoLam = txtNgayVaoLam.getValue();
+        
+        // Kiểm tra trống
+        if (tenNV.isEmpty()) {
+            AlertCus.show("Thông tin thiếu", "Tên nhân viên không được để trống.");
+            txtTenNV.requestFocus();
+            throw new IllegalArgumentException("Tên trống");
+        }
+        if (sdt.isEmpty()) {
+            AlertCus.show("Thông tin thiếu", "Số điện thoại không được để trống.");
+            txtSDT.requestFocus();
+            throw new IllegalArgumentException("SĐT trống");
+        }
+        if (ngayVaoLam == null) {
+            AlertCus.show("Thông tin thiếu", "Vui lòng chọn ngày vào làm.");
+            txtNgayVaoLam.requestFocus();
+            throw new IllegalArgumentException("Ngày trống");
+        }
+
+        // Kiểm tra ToggleGroup (Giới tính, Trạng thái)
+        if (genderGroup.getSelectedToggle() == null) {
+            AlertCus.show("Thông tin thiếu", "Vui lòng chọn giới tính.");
+            throw new IllegalArgumentException("Chưa chọn giới tính");
+        }
+        if (statusGroup.getSelectedToggle() == null) {
+            AlertCus.show("Thông tin thiếu", "Vui lòng chọn trạng thái làm việc.");
+            throw new IllegalArgumentException("Chưa chọn trạng thái");
+        }
+        if (comboChucVu.getValue() == null) {
+            AlertCus.show("Thông tin thiếu", "Vui lòng chọn chức vụ.");
+            comboChucVu.requestFocus();
+            throw new IllegalArgumentException("Chưa chọn chức vụ");
+        }
+
         boolean gioiTinh = rdoNam.isSelected();
         boolean trangThai = rdoConLam.isSelected();
         boolean quanLi = "Quản lý".equalsIgnoreCase(comboChucVu.getValue());
         String matKhau = txtMatKhau.getText().isEmpty() ? "Abcd123@" : txtMatKhau.getText();
 
         NhanVien nv = new NhanVien();
-        nv.setMaNV(maNV);
-        nv.setTenNV(tenNV);
-        nv.setSdt(sdt);
-        nv.setGioiTinh(gioiTinh);
-        nv.setQuanLi(quanLi);
-        nv.setNgayVaoLam(ngayVaoLam);
-        nv.setTrangThai(trangThai);
-
         try {
+            nv.setMaNV(maNV);
+            nv.setTenNV(tenNV);
+            nv.setSdt(sdt);
+            nv.setGioiTinh(gioiTinh);
+            nv.setQuanLi(quanLi);
+            nv.setNgayVaoLam(ngayVaoLam);
+            nv.setTrangThai(trangThai);
             nv.setMatKhau(matKhau);
         } catch (IllegalArgumentException e) {
-            AlertCus.show("Mật khẩu không hợp lệ", e.getMessage());
-            txtMatKhau.requestFocus();
+            AlertCus.show("Thông tin không hợp lệ", e.getMessage());
             throw e;
         }
         return nv;

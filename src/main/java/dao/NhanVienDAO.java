@@ -108,7 +108,7 @@ public class NhanVienDAO {
         } catch (Exception e) {
             System.err.println("NhanVienDAO.maNVCuoi(): " + e.getMessage());
         }
-        return null;
+        return "NV0000";
     }
 
     public static boolean updateMatKhau(String maNV, String matKhauMoi) {

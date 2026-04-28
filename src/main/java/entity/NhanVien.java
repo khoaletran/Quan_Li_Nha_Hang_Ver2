@@ -56,6 +56,9 @@ public class NhanVien {
     }
 
     public void setNgayVaoLam(LocalDate ngayVaoLam) {
+        if (ngayVaoLam == null) {
+            throw new IllegalArgumentException("Ngày vào làm không được để trống.");
+        }
         if (ngayVaoLam.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("Ngày vào làm phải trước hoặc bằng ngày hiện tại.");
         }this.ngayVaoLam = ngayVaoLam;
