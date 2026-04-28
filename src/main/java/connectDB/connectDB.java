@@ -8,12 +8,13 @@ public class connectDB {
     private static Connection con = null;
     private static final connectDB instance = new connectDB();
 
-    private static final String URL      = "jdbc:mariadb://localhost:3306/qlnh_ver2"
+    private static final String URL = "jdbc:mariadb://localhost:3307/qlnh_ver2"
             + "?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Ho_Chi_Minh";
-    private static final String USER     = "root";
-    private static final String PASSWORD = "123456";
+    private static final String USER = "root";
+    private static final String PASSWORD = "280405";
 
-    private connectDB() {}
+    private connectDB() {
+    }
 
     public static connectDB getInstance() {
         return instance;

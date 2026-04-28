@@ -18,7 +18,16 @@ public class ChiTietHoaDonRepositoryImpl extends AbstractRepository<ChiTietHoaDo
 
     @Override
     public List<ChiTietHoaDon> findByMaHD(String maHD) {
-        return findByHql("FROM ChiTietHoaDon WHERE id.maHD = :maHD", "maHD", maHD);
+        try (EntityManager em = openEntityManager()) {
+            return em.createQuery("""
+                FROM ChiTietHoaDon ct
+                JOIN FETCH ct.mon m
+                LEFT JOIN FETCH m.loaiMon
+                WHERE ct.id.maHD = :maHD
+                """, ChiTietHoaDon.class)
+                .setParameter("maHD", maHD)
+                .getResultList();
+        }
     }
 
     @Override

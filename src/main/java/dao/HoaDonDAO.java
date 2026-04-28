@@ -8,16 +8,25 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import org.hibernate.Session;
 import jakarta.persistence.EntityManager;
 
 public class HoaDonDAO {
 
-    // Helper: lấy JDBC Connection từ JPA EntityManager (Hibernate)
+    // Thông tin kết nối DB (dùng DriverManager để tạo connection độc lập, tránh leak Hibernate pool)
+    private static final String DB_URL  = "jdbc:mariadb://localhost:3307/qlnh_ver2"
+            + "?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Ho_Chi_Minh";
+    private static final String DB_USER = "root";
+    private static final String DB_PASS = "280405";
+
+    /**
+     * Trả về một JDBC Connection mới, độc lập với Hibernate connection pool.
+     * Caller PHẢI đóng connection này (dùng try-with-resources).
+     * Không dùng EntityManager.unwrap() vì sẽ leak EM và chiếm slot trong pool.
+     */
     private static Connection getJpaConnection() throws SQLException {
-        EntityManager em = JpaConfig.getEntityManagerFactory().createEntityManager();
-        Session session = em.unwrap(Session.class);
-        return session.doReturningWork(connection -> connection);
+        Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+        conn.setAutoCommit(true); // đảm bảo INSERT/UPDATE/DELETE commit ngay
+        return conn;
     }
 
     // =====================================================================
@@ -179,11 +188,11 @@ public class HoaDonDAO {
 
         String sql = SELECT_FULL + """
             WHERE (
-                (hd.kieuDatBan = 1 AND hd.tgCheckin >= CAST(GETDATE() AS DATE)
-                                   AND hd.tgCheckin < DATEADD(DAY,1,CAST(GETDATE() AS DATE)))
+                (hd.kieuDatBan = 1 AND hd.tgCheckin >= CURDATE()
+                                   AND hd.tgCheckin < DATE_ADD(CURDATE(), INTERVAL 1 DAY))
                 OR
-                (hd.kieuDatBan = 0 AND hd.tgLapHD >= CAST(GETDATE() AS DATE)
-                                   AND hd.tgLapHD < DATEADD(DAY,1,CAST(GETDATE() AS DATE)))
+                (hd.kieuDatBan = 0 AND hd.tgLapHD >= CURDATE()
+                                   AND hd.tgLapHD < DATE_ADD(CURDATE(), INTERVAL 1 DAY))
             )
         """;
 
@@ -289,7 +298,7 @@ public class HoaDonDAO {
         }
 
         sql.append(" ORDER BY hd.tgLapHD DESC ")
-                .append(" OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY ");
+                .append(" LIMIT 100 ");
 
 
         try (Connection conn = getJpaConnection();
@@ -394,13 +403,13 @@ public class HoaDonDAO {
                 (
                    (hd.kieuDatBan = 1
                     AND (hd.tgCheckin IS NULL OR
-                         (hd.tgCheckin >= CAST(GETDATE() AS DATE)
-                          AND hd.tgCheckin < DATEADD(DAY, 1, CAST(GETDATE() AS DATE)))))
+                         (hd.tgCheckin >= CURDATE()
+                          AND hd.tgCheckin < DATE_ADD(CURDATE(), INTERVAL 1 DAY))))
                    OR
                    (hd.kieuDatBan = 0
                     AND (hd.tgLapHD IS NULL OR
-                         (hd.tgLapHD >= CAST(GETDATE() AS DATE)
-                          AND hd.tgLapHD < DATEADD(DAY, 1, CAST(GETDATE() AS DATE)))))
+                         (hd.tgLapHD >= CURDATE()
+                          AND hd.tgLapHD < DATE_ADD(CURDATE(), INTERVAL 1 DAY))))
                 )""";
 
         try (Connection conn = getJpaConnection();
@@ -472,39 +481,46 @@ public class HoaDonDAO {
     // =====================================================================
 
     public static boolean insert(HoaDon hd) {
+        // Dùng JPA EntityManager + explicit transaction để đảm bảo commit ngay lập tức,
+        // tránh vấn đề autocommit=false của Hibernate khi dùng JDBC thô.
         String sql = """
             INSERT INTO HoaDon(
                 maHD, maKH, maNV, maBan, maKM, maSK, tgLapHD,
                 tgCheckin, tgCheckout, kieuThanhToan, kieuDatBan,
                 trangThai, soLuong, moTa
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (:maHD, :maKH, :maNV, :maBan, :maKM, :maSK, :tgLapHD,
+                    :tgCheckin, :tgCheckout, :kieuThanhToan, :kieuDatBan,
+                    :trangThai, :soLuong, :moTa)
         """;
 
-        try (Connection conn = getJpaConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, hd.getMaHD());
-            ps.setString(2, hd.getKhachHang() != null ? hd.getKhachHang().getMaKhachHang() : null);
-            ps.setString(3, hd.getNhanVien() != null ? hd.getNhanVien().getMaNV() : null);
-            ps.setString(4, hd.getBan() != null ? hd.getBan().getMaBan() : null);
-            ps.setString(5, hd.getKhuyenMai() != null ? hd.getKhuyenMai().getMaKM() : null);
-            ps.setString(6, hd.getSuKien() != null ? hd.getSuKien().getMaSK() : null);
-
-            ps.setTimestamp(7, hd.getTgLapHD() != null ? Timestamp.valueOf(hd.getTgLapHD()) : null);
-            ps.setTimestamp(8, hd.getTgCheckIn() != null ? Timestamp.valueOf(hd.getTgCheckIn()) : null);
-            ps.setTimestamp(9, hd.getTgCheckOut() != null ? Timestamp.valueOf(hd.getTgCheckOut()) : null);
-
-            ps.setBoolean(10, hd.isKieuThanhToan());
-            ps.setBoolean(11, hd.isKieuDatBan());
-            ps.setInt(12, hd.getTrangthai());
-            ps.setInt(13, hd.getSoLuong());
-            ps.setString(14, hd.getMoTa());
-
-            return ps.executeUpdate() > 0;
-
+        jakarta.persistence.EntityTransaction tx = null;
+        try (EntityManager em = JpaConfig.getEntityManagerFactory().createEntityManager()) {
+            tx = em.getTransaction();
+            tx.begin();
+            em.createNativeQuery(sql)
+                .setParameter("maHD",          hd.getMaHD())
+                .setParameter("maKH",          hd.getKhachHang()  != null ? hd.getKhachHang().getMaKhachHang()  : null)
+                .setParameter("maNV",          hd.getNhanVien()   != null ? hd.getNhanVien().getMaNV()           : null)
+                .setParameter("maBan",         hd.getBan()        != null ? hd.getBan().getMaBan()              : null)
+                .setParameter("maKM",          hd.getKhuyenMai()  != null ? hd.getKhuyenMai().getMaKM()         : null)
+                .setParameter("maSK",          hd.getSuKien()     != null ? hd.getSuKien().getMaSK()            : null)
+                .setParameter("tgLapHD",       hd.getTgLapHD())
+                .setParameter("tgCheckin",     hd.getTgCheckIn())
+                .setParameter("tgCheckout",    hd.getTgCheckOut())
+                .setParameter("kieuThanhToan", hd.isKieuThanhToan())
+                .setParameter("kieuDatBan",    hd.isKieuDatBan())
+                .setParameter("trangThai",     hd.getTrangthai())
+                .setParameter("soLuong",       hd.getSoLuong())
+                .setParameter("moTa",          hd.getMoTa())
+                .executeUpdate();
+            tx.commit();
+            System.out.println("Insert HoaDon thành công: " + hd.getMaHD());
+            return true;
         } catch (Exception e) {
-            System.err.println("Lỗi insert: " + e.getMessage());
+            if (tx != null && tx.isActive()) tx.rollback();
+            System.err.println("Lỗi insert HoaDon: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
@@ -571,10 +587,11 @@ public class HoaDonDAO {
         String prefix = "HD" + ca + ngay;
 
         String sql = """
-            SELECT TOP 1 maHD
+            SELECT maHD
             FROM HoaDon
             WHERE maHD LIKE ?
             ORDER BY maHD DESC
+            LIMIT 1
         """;
 
         try (Connection conn = getJpaConnection();
@@ -608,18 +625,20 @@ public class HoaDonDAO {
                 m.giaGoc,
                 COALESCE(
                     (
-                        SELECT TOP 1 p1.phanTramLoi
+                        SELECT p1.phanTramLoi
                         FROM PhanTramGiaBan p1
                         WHERE p1.maMon = m.maMon
                           AND p1.ngayApDung <= hd.tgLapHD
                         ORDER BY p1.ngayApDung DESC
+                        LIMIT 1
                     ),
                     (
-                        SELECT TOP 1 p2.phanTramLoi
+                        SELECT p2.phanTramLoi
                         FROM PhanTramGiaBan p2
                         WHERE p2.maLoaiMon = m.loaiMon
                           AND p2.ngayApDung <= hd.tgLapHD
                         ORDER BY p2.ngayApDung DESC
+                        LIMIT 1
                     ),
                     0
                 ) AS phanTramLoi
@@ -728,18 +747,20 @@ public class HoaDonDAO {
                 m.giaGoc,
                 COALESCE(
                     (
-                        SELECT TOP 1 p1.phanTramLoi
+                        SELECT p1.phanTramLoi
                         FROM PhanTramGiaBan p1
                         WHERE p1.maMon = m.maMon
                           AND p1.ngayApDung <= hd.tgLapHD
                         ORDER BY p1.ngayApDung DESC
+                        LIMIT 1
                     ),
                     (
-                        SELECT TOP 1 p2.phanTramLoi
+                        SELECT p2.phanTramLoi
                         FROM PhanTramGiaBan p2
                         WHERE p2.maLoaiMon = m.loaiMon
                           AND p2.ngayApDung <= hd.tgLapHD
                         ORDER BY p2.ngayApDung DESC
+                        LIMIT 1
                     ),
                     0
                 ) AS phanTramLoi
@@ -785,8 +806,8 @@ public class HoaDonDAO {
         JOIN Ban b ON b.maBan = hd.maBan
         JOIN LoaiBan lb ON lb.maLoaiBan = b.maLoaiBan
         JOIN KhuVuc kv ON kv.maKhuVuc = b.maKhuVuc
-        WHERE hd.tgCheckin >= CAST(GETDATE() AS DATE)
-		AND hd.tgCheckin < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))
+        WHERE hd.tgCheckin >= CURDATE()
+        AND hd.tgCheckin < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
         ORDER BY hd.tgLapHD
     """;
 
@@ -841,7 +862,7 @@ public class HoaDonDAO {
         List<HoaDon> ds = new ArrayList<>();
 
         String sql = SELECT_FULL + " WHERE hd.trangThai = ? AND b.maBan LIKE 'B%'";
-        //AND hd.tgCheckin > GETDATE()
+        //AND hd.tgCheckin > NOW()
 
         try (Connection conn = getJpaConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -868,12 +889,12 @@ public class HoaDonDAO {
         (
             (hd.trangThai = 0
              AND hd.tgLapHD IS NOT NULL
-             AND CAST(hd.tgLapHD AS DATE) >= CAST(GETDATE() AS DATE)
+             AND CAST(hd.tgLapHD AS DATE) >= CURDATE()
             )
             OR
             (hd.trangThai <> 0
              AND hd.tgCheckin IS NOT NULL
-             AND CAST(hd.tgCheckin AS DATE) >= CAST(GETDATE() AS DATE)
+             AND CAST(hd.tgCheckin AS DATE) >= CURDATE()
             )
         )
         ORDER BY COALESCE(hd.tgCheckin, hd.tgLapHD) DESC

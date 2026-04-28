@@ -43,28 +43,44 @@ import java.util.*;
 public class TraCuuHoaDonController {
 
     // FXML - danh sách hóa đơn
-    @FXML private VBox vbox_center_scroll, vboxChiTietDonHang;
+    @FXML
+    private VBox vbox_center_scroll, vboxChiTietDonHang;
 
     // FXML - bộ lọc và tìm kiếm
-    @FXML private TextField txtTimKiem;
-    @FXML private DatePicker dpThoiGian;
-    @FXML private ComboBox<String> cboTrangThai;
-    @FXML private ComboBox<String> cboKhuVuc;
-    @FXML private Button btnXoaTrang;
-    @FXML private Button btnTimKiem;
+    @FXML
+    private TextField txtTimKiem;
+    @FXML
+    private DatePicker dpThoiGian;
+    @FXML
+    private ComboBox<String> cboTrangThai;
+    @FXML
+    private ComboBox<String> cboKhuVuc;
+    @FXML
+    private Button btnXoaTrang;
+    @FXML
+    private Button btnTimKiem;
 
     // FXML - thông tin chi tiết hóa đơn
-    @FXML private TextField txtMaHoaDon;
-    @FXML private TextField txtTenKH;
-    @FXML private TextField txtSDTChiTiet;
-    @FXML private TextField txtBan;
-    @FXML private TextField txtSoLuong;
-    @FXML private TextField txtSuKien;
-    @FXML private TextField txtKhuVuc;
-    @FXML private TextArea txtMoTa;
+    @FXML
+    private TextField txtMaHoaDon;
+    @FXML
+    private TextField txtTenKH;
+    @FXML
+    private TextField txtSDTChiTiet;
+    @FXML
+    private TextField txtBan;
+    @FXML
+    private TextField txtSoLuong;
+    @FXML
+    private TextField txtSuKien;
+    @FXML
+    private TextField txtKhuVuc;
+    @FXML
+    private TextArea txtMoTa;
 
     // FXML - nút in hóa đơn
-    @FXML private Button confirm_btn;
+    @FXML
+    private Button confirm_btn;
 
     // DAO + dữ liệu
     private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
@@ -96,9 +112,10 @@ public class TraCuuHoaDonController {
         Tooltip.install(btnXoaTrang, tipClear);
         Tooltip tipPrint = new Tooltip("In nhanh hóa đơn(Ctrl + P)");
         Tooltip.install(confirm_btn, tipPrint);
-        
+
     }
-    private void addShortcuts(Scene scene){
+
+    private void addShortcuts(Scene scene) {
         KeyCombination ctrlD = new KeyCodeCombination(KeyCode.D, KeyCombination.CONTROL_DOWN);
         KeyCombination ctrlF = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
         KeyCombination ctrlL = new KeyCodeCombination(KeyCode.L, KeyCombination.CONTROL_DOWN);
@@ -106,6 +123,7 @@ public class TraCuuHoaDonController {
         KeyCombination ctrlP = new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN);
         scene.getAccelerators().put(ctrlP, () -> HoaDonIn.previewHoaDon(hoaDonSelected));
     }
+
     // KẾT NỐI DB
     private boolean ketNoiDatabase() {
         try {
@@ -121,7 +139,8 @@ public class TraCuuHoaDonController {
 
     // KHỞI TẠO CONTROL
     private void khoiTaoComboBox() {
-        if(cboKhuVuc == null) return;
+        if (cboKhuVuc == null)
+            return;
         List<KhuVuc> dsKhuVuc = KhuVucDAO.getAll();
         cboKhuVuc.getItems().clear();
         for (KhuVuc kv : dsKhuVuc) {
@@ -137,17 +156,29 @@ public class TraCuuHoaDonController {
     }
 
     private void ganSuKienChoNut() {
-        if (btnTimKiem != null) btnTimKiem.setOnAction(e -> locHoaDon());
-        if (btnXoaTrang != null) btnXoaTrang.setOnAction(e -> xoaTrangBoLoc());
-        if (confirm_btn != null) confirm_btn.setOnAction(e -> HoaDonIn.previewHoaDon(hoaDonSelected));
+        if (btnTimKiem != null)
+            btnTimKiem.setOnAction(e -> locHoaDon());
+        if (btnXoaTrang != null)
+            btnXoaTrang.setOnAction(e -> xoaTrangBoLoc());
+        if (confirm_btn != null)
+            confirm_btn.setOnAction(e -> HoaDonIn.previewHoaDon(hoaDonSelected));
     }
+
     // TẢI & HIỂN THỊ DANH SÁCH HÓA ĐƠN
     private void taiDanhSachHoaDon(List<HoaDon> hoaDonSelected) {
         try {
-            List<HoaDon> listHD = hoaDonSelected;
+            List<HoaDon> listHD;
+            if (hoaDonSelected == null) {
+                // Khi khởi tạo hoặc xóa bộ lọc → tải toàn bộ từ DB
+                listHD = hoaDonDAO.searchHoaDon("", null, null, null);
+            } else {
+                listHD = hoaDonSelected;
+            }
             dsHoaDon.clear();
-            if (listHD != null) dsHoaDon.addAll(listHD);
+            if (listHD != null)
+                dsHoaDon.addAll(listHD);
             hienThiDanhSachHoaDon();
+            System.out.println("Đã tải " + dsHoaDon.size() + " hóa đơn");
         } catch (Exception ex) {
             System.err.println("Lỗi khi tải danh sách hóa đơn: " + ex.getMessage());
             ex.printStackTrace();
@@ -155,7 +186,8 @@ public class TraCuuHoaDonController {
     }
 
     private void hienThiDanhSachHoaDon() {
-        if (vbox_center_scroll == null) return;
+        if (vbox_center_scroll == null)
+            return;
         vbox_center_scroll.getChildren().clear();
 
         if (dsHoaDon.isEmpty()) {
@@ -176,7 +208,8 @@ public class TraCuuHoaDonController {
         card.setPadding(new Insets(8));
         card.setCursor(Cursor.HAND);
         card.setPrefHeight(80);
-        card.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 8; -fx-background-radius: 8;");
+        card.setStyle(
+                "-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 8; -fx-background-radius: 8;");
 
         // thumb
         StackPane thumb = new StackPane();
@@ -219,7 +252,8 @@ public class TraCuuHoaDonController {
             chiTietHoaDonData.clear();
             clearSelectedStyles();
             // style card được chọn
-            card.setStyle("-fx-background-color: #007bff; -fx-border-color: #0056b3; -fx-border-radius: 8; -fx-background-radius: 8;");
+            card.setStyle(
+                    "-fx-background-color: #007bff; -fx-border-color: #0056b3; -fx-border-radius: 8; -fx-background-radius: 8;");
             // đổi màu chữ
             for (javafx.scene.Node node : card.getChildren()) {
                 if (node instanceof VBox) {
@@ -242,35 +276,48 @@ public class TraCuuHoaDonController {
 
     private String getTrangThaiText(int trangThai) {
         switch (trangThai) {
-            case 0: return "Đặt trước";
-            case 1: return "Đang phục vụ";
-            case 2: return "Đã thanh toán";
-            case 3: return "Không nhận đơn";
-            default: return "Không xác định";
+            case 0:
+                return "Đặt trước";
+            case 1:
+                return "Đang phục vụ";
+            case 2:
+                return "Đã thanh toán";
+            case 3:
+                return "Không nhận đơn";
+            default:
+                return "Không xác định";
         }
     }
 
     private String getTrangThaiStyle(int trangThai) {
         switch (trangThai) {
-            case 0: return "-fx-text-fill: #e74c3c; -fx-font-weight: bold; -fx-font-size: 11px;";
-            case 1: return "-fx-text-fill: #f39c12; -fx-font-weight: bold; -fx-font-size: 11px;";
-            case 2: return "-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-font-size: 11px;";
-            case 3: return "-fx-text-fill: red; -fx-font-weight: bold; -fx-font-size: 11px;";
-            default: return "-fx-text-fill: #666; -fx-font-weight: bold; -fx-font-size: 11px;";
+            case 0:
+                return "-fx-text-fill: #e74c3c; -fx-font-weight: bold; -fx-font-size: 11px;";
+            case 1:
+                return "-fx-text-fill: #f39c12; -fx-font-weight: bold; -fx-font-size: 11px;";
+            case 2:
+                return "-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-font-size: 11px;";
+            case 3:
+                return "-fx-text-fill: red; -fx-font-weight: bold; -fx-font-size: 11px;";
+            default:
+                return "-fx-text-fill: #666; -fx-font-weight: bold; -fx-font-size: 11px;";
         }
     }
 
     private void clearSelectedStyles() {
-        if (vbox_center_scroll == null) return;
+        if (vbox_center_scroll == null)
+            return;
         for (javafx.scene.Node node : vbox_center_scroll.getChildren()) {
             if (node instanceof HBox) {
-                node.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 8; -fx-background-radius: 8;");
+                node.setStyle(
+                        "-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 8; -fx-background-radius: 8;");
                 for (javafx.scene.Node child : ((HBox) node).getChildren()) {
                     if (child instanceof VBox) {
                         for (javafx.scene.Node label : ((VBox) child).getChildren()) {
                             if (label instanceof Label) {
                                 if (((Label) label).getText().startsWith("HD")) {
-                                    ((Label) label).setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #333;");
+                                    ((Label) label).setStyle(
+                                            "-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #333;");
                                 } else {
                                     ((Label) label).setStyle("-fx-text-fill: #666; -fx-font-size: 12px;");
                                 }
@@ -279,13 +326,17 @@ public class TraCuuHoaDonController {
                     } else if (child instanceof Label) {
                         String text = ((Label) child).getText();
                         if (text.contains("Đặt trước")) {
-                            ((Label) child).setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold; -fx-font-size: 11px;");
+                            ((Label) child)
+                                    .setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold; -fx-font-size: 11px;");
                         } else if (text.contains("Đang phục vụ")) {
-                            ((Label) child).setStyle("-fx-text-fill: #f39c12; -fx-font-weight: bold; -fx-font-size: 11px;");
+                            ((Label) child)
+                                    .setStyle("-fx-text-fill: #f39c12; -fx-font-weight: bold; -fx-font-size: 11px;");
                         } else if (text.contains("Đã thanh toán")) {
-                            ((Label) child).setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-font-size: 11px;");
+                            ((Label) child)
+                                    .setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold; -fx-font-size: 11px;");
                         } else if (text.contains("Không nhận đơn")) {
-                            ((Label) child).setStyle("-fx-text-fill: #d62c01ff; -fx-font-weight: bold; -fx-font-size: 11px;");
+                            ((Label) child)
+                                    .setStyle("-fx-text-fill: #d62c01ff; -fx-font-weight: bold; -fx-font-size: 11px;");
                         }
                     }
                 }
@@ -295,8 +346,10 @@ public class TraCuuHoaDonController {
 
     // HIỂN THỊ CHI TIẾT HÓA ĐƠN
     private void hienThiThongTinChiTiet(HoaDon hd) {
-        if (hd == null) return;
-        if (txtMaHoaDon != null) txtMaHoaDon.setText(hd.getMaHD());
+        if (hd == null)
+            return;
+        if (txtMaHoaDon != null)
+            txtMaHoaDon.setText(hd.getMaHD());
 
         KhachHang kh = hd.getKhachHang();
         if (kh == null) {
@@ -304,23 +357,34 @@ public class TraCuuHoaDonController {
             try {
                 Method m = hd.getClass().getMethod("getMaKH");
                 Object obj = m.invoke(hd);
-                if (obj != null) maKH = obj.toString();
-            } catch (Exception ignored) {}
+                if (obj != null)
+                    maKH = obj.toString();
+            } catch (Exception ignored) {
+            }
             if (maKH != null && !maKH.trim().isEmpty()) {
-                try { kh = khachHangDAO.getById(maKH); } catch (Exception ex) { System.out.println("Lỗi lấy KH: " + ex.getMessage()); }
+                try {
+                    kh = khachHangDAO.getById(maKH);
+                } catch (Exception ex) {
+                    System.out.println("Lỗi lấy KH: " + ex.getMessage());
+                }
             }
         }
 
         if (kh != null) {
-            if (txtTenKH != null) txtTenKH.setText(kh.getTenKhachHang() != null ? kh.getTenKhachHang() : "—");
-            if (txtSDTChiTiet != null) txtSDTChiTiet.setText(kh.getSdt() != null ? kh.getSdt() : "—");
+            if (txtTenKH != null)
+                txtTenKH.setText(kh.getTenKhachHang() != null ? kh.getTenKhachHang() : "—");
+            if (txtSDTChiTiet != null)
+                txtSDTChiTiet.setText(kh.getSdt() != null ? kh.getSdt() : "—");
         } else {
-            if (txtTenKH != null) txtTenKH.setText("—");
-            if (txtSDTChiTiet != null) txtSDTChiTiet.setText("—");
+            if (txtTenKH != null)
+                txtTenKH.setText("—");
+            if (txtSDTChiTiet != null)
+                txtSDTChiTiet.setText("—");
         }
 
         if (hd.getBan() != null) {
-            if (txtBan != null) txtBan.setText(hd.getBan().getMaBan() != null ? hd.getBan().getMaBan() : "—");
+            if (txtBan != null)
+                txtBan.setText(hd.getBan().getMaBan() != null ? hd.getBan().getMaBan() : "—");
             if (txtKhuVuc != null) {
                 String tenKhuVuc = "—";
                 if (hd.getBan().getKhuVuc() != null && hd.getBan().getKhuVuc().getTenKhuVuc() != null) {
@@ -329,34 +393,32 @@ public class TraCuuHoaDonController {
                 txtKhuVuc.setText(tenKhuVuc);
             }
         } else {
-            if (txtBan != null) txtBan.setText("—");
-            if (txtKhuVuc != null) txtKhuVuc.setText("—");
+            if (txtBan != null)
+                txtBan.setText("—");
+            if (txtKhuVuc != null)
+                txtKhuVuc.setText("—");
         }
 
         if (txtSuKien != null) {
             try {
-                txtSuKien.setText(hd.getSuKien() != null && hd.getSuKien().getTenSK() != null ? hd.getSuKien().getTenSK() : "Không có");
+                txtSuKien
+                        .setText(hd.getSuKien() != null && hd.getSuKien().getTenSK() != null ? hd.getSuKien().getTenSK()
+                                : "Không có");
             } catch (Exception ex) {
                 txtSuKien.setText("Không có");
             }
         }
 
         if (txtSoLuong != null) {
-            try { txtSoLuong.setText(String.valueOf(hd.getSoLuong())); }
-            catch (Exception ex) { txtSoLuong.setText("0"); }
+            try {
+                txtSoLuong.setText(String.valueOf(hd.getSoLuong()));
+            } catch (Exception ex) {
+                txtSoLuong.setText("0");
+            }
         }
 
         if (txtMoTa != null) {
-            try {
-                Method m = null;
-                try { m = hd.getClass().getMethod("getGhiChu"); } catch (NoSuchMethodException nsme) { m = null; }
-                if (m != null) {
-                    Object val = m.invoke(hd);
-                    txtMoTa.setText(val != null ? val.toString() : "");
-                } else txtMoTa.setText("");
-            } catch (Exception ex) {
-                txtMoTa.setText("");
-            }
+            txtMoTa.setText(hd.getMoTa() != null ? hd.getMoTa() : "");
         }
 
         loadChiTietDonHang(hd.getMaHD());
@@ -364,7 +426,8 @@ public class TraCuuHoaDonController {
 
     private void loadChiTietDonHang(String maHD) {
         vboxChiTietDonHang.getChildren().clear();
-        if (maHD == null || maHD.trim().isEmpty()) return;
+        if (maHD == null || maHD.trim().isEmpty())
+            return;
         try {
             List<ChiTietHoaDon> dsChiTiet = chiTietHDDAO.getByMaHD(maHD);
             if (dsChiTiet != null && !dsChiTiet.isEmpty()) {
@@ -381,15 +444,17 @@ public class TraCuuHoaDonController {
         }
     }
 
-
-
     // XÓA TRẮNG BỘ LỌC / IN / RESET
     @FXML
     private void xoaTrangBoLoc() {
-        if (txtTimKiem != null) txtTimKiem.clear();
-        if (dpThoiGian != null) dpThoiGian.setValue(null);
-        if (cboTrangThai != null) cboTrangThai.setValue("Tất cả");
-        if (cboKhuVuc != null) cboKhuVuc.setValue("Tất cả");
+        if (txtTimKiem != null)
+            txtTimKiem.clear();
+        if (dpThoiGian != null)
+            dpThoiGian.setValue(null);
+        if (cboTrangThai != null)
+            cboTrangThai.setValue("Tất cả");
+        if (cboKhuVuc != null)
+            cboKhuVuc.setValue("Tất cả");
 
         taiDanhSachHoaDon(null);
         resetForm();
@@ -397,18 +462,27 @@ public class TraCuuHoaDonController {
 
     private void resetForm() {
         hoaDonSelected = null;
-        if (txtMaHoaDon != null) txtMaHoaDon.setText("");
-        if (txtTenKH != null) txtTenKH.setText("");
-        if (txtSDTChiTiet != null) txtSDTChiTiet.setText("");
-        if (txtBan != null) txtBan.setText("");
-        if (txtSoLuong != null) txtSoLuong.setText("");
-        if (txtSuKien != null) txtSuKien.setText("");
-        if (txtKhuVuc != null) txtKhuVuc.setText("");
-        if (txtMoTa != null) txtMoTa.setText("");
+        if (txtMaHoaDon != null)
+            txtMaHoaDon.setText("");
+        if (txtTenKH != null)
+            txtTenKH.setText("");
+        if (txtSDTChiTiet != null)
+            txtSDTChiTiet.setText("");
+        if (txtBan != null)
+            txtBan.setText("");
+        if (txtSoLuong != null)
+            txtSoLuong.setText("");
+        if (txtSuKien != null)
+            txtSuKien.setText("");
+        if (txtKhuVuc != null)
+            txtKhuVuc.setText("");
+        if (txtMoTa != null)
+            txtMoTa.setText("");
 
         chiTietHoaDonData.clear();
         clearSelectedStyles();
     }
+
     // HỘP THOẠI
     private void hienThiThongBaoLoi(String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -476,11 +550,9 @@ public class TraCuuHoaDonController {
                 "Đặt trước",
                 "Đang dùng",
                 "Đã thanh toán",
-                "Không nhận đơn"
-        );
+                "Không nhận đơn");
         cboTrangThai.setValue(null);
     }
-
 
     private void locHoaDon() {
         String keyword = (txtTimKiem.getText() != null)
@@ -494,10 +566,18 @@ public class TraCuuHoaDonController {
         Integer trangThai = null;
         if (trangThaiTxt != null && !"Tất cả".equalsIgnoreCase(trangThaiTxt)) {
             switch (trangThaiTxt) {
-                case "Đặt trước":     trangThai = 0; break;
-                case "Đang dùng":     trangThai = 1; break;
-                case "Đã thanh toán": trangThai = 2; break;
-                case "Không nhận đơn":trangThai = 3; break;
+                case "Đặt trước":
+                    trangThai = 0;
+                    break;
+                case "Đang dùng":
+                    trangThai = 1;
+                    break;
+                case "Đã thanh toán":
+                    trangThai = 2;
+                    break;
+                case "Không nhận đơn":
+                    trangThai = 3;
+                    break;
             }
         }
 
@@ -506,6 +586,5 @@ public class TraCuuHoaDonController {
         dsHoaDon.setAll(list);
         hienThiDanhSachHoaDon();
     }
-
 
 }

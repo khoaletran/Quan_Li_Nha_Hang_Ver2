@@ -25,7 +25,7 @@ public class ChiTietHoaDon {
     private int soLuong;
 
     @Column(name = "thanhTien")
-    private double thanhTien;
+    private Double thanhTien;   // Nullable — computed on-the-fly when null (insert không set cột này)
 
     // ─── Relationships ────────────────────────────────────────────────────
 

@@ -90,7 +90,8 @@ public class HoaDonService {
                 dto.setGiaBanTaiLucLapHD(m.getGiaGoc() * (1 + pt / 100.0));
             }
             dto.setSoLuong(ct.getSoLuong());
-            dto.setThanhTien(ct.getThanhTien());
+            // Tính thanhTien on-the-fly (cột DB thường NULL vì insert không set nó)
+            dto.setThanhTien(thanhTienCt(ct, hd.getTgLapHD()));
             return dto;
         }).collect(Collectors.toList());
     }
@@ -107,8 +108,9 @@ public class HoaDonService {
         HoaDon hd = hoaDonRepo.findById(maHD).orElse(null);
         if (hd == null) return 0;
 
-        double tongTien = cthdRepo.findByMaHD(maHD).stream()
-                .mapToDouble(ChiTietHoaDon::getThanhTien)
+        List<ChiTietHoaDon> items = cthdRepo.findByMaHD(maHD);
+        double tongTien = items.stream()
+                .mapToDouble(ct -> thanhTienCt(ct, hd.getTgLapHD()))
                 .sum();
 
         // Add event fee
@@ -215,17 +217,82 @@ public class HoaDonService {
         return truoc - km + thue - coc;
     }
 
-    /** Populate all computed billing fields into a HoaDonDTO. */
+    /**
+     * Populate all computed billing fields into a HoaDonDTO.
+     * Loads HoaDon + ChiTietHoaDon exactly ONCE to avoid N+1 query explosion.
+     */
     public HoaDonDTO enrichWithBilling(HoaDonDTO dto) {
         String maHD = dto.getMaHD();
-        dto.setTongTienTruoc(tinhTongTienTruoc(maHD));
-        dto.setTienMaKM(tinhTienMaKM(maHD));
-        dto.setTienHangKM(tinhTienHangKM(maHD));
-        dto.setTongTienKhuyenMai(tinhTongKhuyenMai(maHD));
-        dto.setThue(tinhThue(maHD));
-        dto.setCoc(tinhCoc(maHD));
-        dto.setTongTienSau(tinhTongTienSau(maHD));
+        HoaDon hd = hoaDonRepo.findById(maHD).orElse(null);
+        if (hd == null) return dto;
+        List<ChiTietHoaDon> items = cthdRepo.findByMaHD(maHD);
+
+        double tongTruoc  = computeTongTienTruoc(hd, items);
+        double tienMaKM   = computeTienMaKM(hd, tongTruoc);
+        double tienHangKM = computeTienHangKM(hd, tongTruoc);
+        double tongKM     = tienMaKM + tienHangKM;
+        double thue       = tongTruoc * 0.10;
+        double coc        = computeCoc(hd, tongTruoc);
+
+        dto.setTongTienTruoc(tongTruoc);
+        dto.setTienMaKM(tienMaKM);
+        dto.setTienHangKM(tienHangKM);
+        dto.setTongTienKhuyenMai(tongKM);
+        dto.setThue(thue);
+        dto.setCoc(coc);
+        dto.setTongTienSau(tongTruoc - tongKM + thue - (hd.isKieuDatBan() ? coc : 0));
         return dto;
+    }
+
+    // ── Private helpers (accept already-loaded data — no extra DB calls) ──
+
+    private double computeTongTienTruoc(HoaDon hd, List<ChiTietHoaDon> items) {
+        double total = items.stream()
+                .mapToDouble(ct -> thanhTienCt(ct, hd.getTgLapHD()))
+                .sum();
+        if (hd.getSuKien() != null) total += hd.getSuKien().getGia();
+        return total;
+    }
+
+    private double computeTienMaKM(HoaDon hd, double tongTruoc) {
+        KhuyenMai km = hd.getKhuyenMai();
+        if (km == null) return 0;
+        return km.isUuDai()
+            ? km.getPhanTramGiamGia()                          // fixed amount
+            : (km.getPhanTramGiamGia() / 100.0) * tongTruoc;  // percentage
+    }
+
+    private double computeTienHangKM(HoaDon hd, double tongTruoc) {
+        KhachHang kh = hd.getKhachHang();
+        if (kh == null || kh.getHangKhachHang() == null) return 0;
+        return (kh.getHangKhachHang().getGiamGia() / 100.0) * tongTruoc;
+    }
+
+    private double computeCoc(HoaDon hd, double tongTruoc) {
+        if (!hd.isKieuDatBan() || hd.getBan() == null) return 0;
+        Ban ban = hd.getBan();
+        if (ban.getKhuVuc() == null || ban.getLoaiBan() == null) return 0;
+        Optional<Coc> cocOpt = cocRepo.findByKhuVucAndLoaiBan(
+            ban.getKhuVuc().getMaKhuVuc(), ban.getLoaiBan().getMaLoaiBan());
+        if (cocOpt.isEmpty()) return 0;
+        Coc coc = cocOpt.get();
+        if (coc.isLoaiCoc()) return tongTruoc * coc.getPhanTramCoc() / 100.0;
+        return (tongTruoc >= coc.getSoTienCoc() * 10) ? tongTruoc * 0.4 : coc.getSoTienCoc();
+    }
+
+    /**
+     * Tính thành tiền của một dòng ChiTietHoaDon.
+     * Ưu tiên dùng giá trị đã lưu trong DB (thanhTien != null && > 0).
+     * Nếu NULL (insert không set cột này), tính lại từ giaGoc + markup tại thời điểm lập HĐ.
+     */
+    private double thanhTienCt(ChiTietHoaDon ct, java.time.LocalDateTime tgLapHD) {
+        Double stored = ct.getThanhTien();
+        if (stored != null && stored > 0) return stored;
+        // Fallback: compute on-the-fly
+        Mon m = ct.getMon();
+        if (m == null) return 0;
+        int pt = monService.getPhanTramGiaBanTaiNgayLapHD(m, tgLapHD);
+        return m.getGiaGoc() * (1 + pt / 100.0) * ct.getSoLuong();
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -249,41 +316,45 @@ public class HoaDonService {
      * Migrated from CheckoutController.xuLyThanhToan().
      */
     public void checkout(String maHD, String maKM, boolean kieuThanhToan) {
+        // Load entity cùng với tất cả association cần thiết (JOIN FETCH)
         HoaDon hd = hoaDonRepo.findById(maHD)
             .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hóa đơn: " + maHD));
 
-        // 1) Validate + reserve voucher
-        if (maKM != null && !maKM.isBlank()) {
-            if (!kmService.isKmConHieuLuc(maKM))
-                throw new IllegalStateException("Voucher không còn hiệu lực hoặc hết số lượng.");
-            boolean reserved = kmService.decrementSoLuong(maKM);
-            if (!reserved)
-                throw new IllegalStateException("Voucher vừa hết số lượng. Vui lòng kiểm tra lại.");
-            // Link voucher to invoice
-            KhuyenMai km = new KhuyenMai();
-            km.setMaKM(maKM);
-            hd.setKhuyenMai(km);
+        // Kiểm tra hóa đơn chưa thanh toán
+        if (hd.getTrangThai() == 2) {
+            throw new IllegalStateException("Hóa đơn này đã được thanh toán trước đó.");
         }
 
-        // 2) Mark invoice done
-        hd.setTrangThai(2);
-        hd.setTgCheckout(LocalDateTime.now());
-        hd.setKieuThanhToan(kieuThanhToan);
+        // 1) Validate + reserve voucher
+        String maKMFinal = (maKM != null && !maKM.isBlank()) ? maKM : null;
+        if (maKMFinal != null) {
+            if (!kmService.isKmConHieuLuc(maKMFinal))
+                throw new IllegalStateException("Voucher không còn hiệu lực hoặc hết số lượng.");
+            boolean reserved = kmService.decrementSoLuong(maKMFinal);
+            if (!reserved) {
+                throw new IllegalStateException("Voucher vừa hết số lượng. Vui lòng kiểm tra lại.");
+            }
+        }
+
+        // 2) Cập nhật DB bằng native SQL — tránh hoàn toàn vấn đề detached entity
+        //    (em.merge() thất bại khi entity bị tách sau khi EM đóng và
+        //     khi gán KhuyenMai transient mà @ManyToOne không có cascade)
         try {
-            hoaDonRepo.update(hd);
+            hoaDonRepo.updateForCheckout(maHD, maKMFinal, kieuThanhToan, LocalDateTime.now());
         } catch (Exception e) {
-            // Roll back voucher if update fails
-            if (maKM != null && !maKM.isBlank()) kmService.incrementSoLuong(maKM);
+            // Hoàn trả lượt dùng voucher nếu update thất bại
+            if (maKMFinal != null) kmService.incrementSoLuong(maKMFinal);
             throw e;
         }
 
-        // 3) Credit loyalty points
+        // 3) Tính điểm tích lũy — dùng lại entity đã load, không cần gọi DB thêm
         if (hd.getKhachHang() != null) {
-            double tongTruoc = tinhTongTienTruoc(maHD);
+            List<ChiTietHoaDon> items = cthdRepo.findByMaHD(maHD);
+            double tongTruoc = computeTongTienTruoc(hd, items);
             khService.congDiemTichLuy(hd.getKhachHang().getMaKH(), tongTruoc);
         }
 
-        // 4) Release table
+        // 4) Giải phóng bàn
         if (hd.getBan() != null) {
             banService.updateTrangThai(hd.getBan().getMaBan(), false);
         }
