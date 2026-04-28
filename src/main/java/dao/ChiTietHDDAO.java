@@ -65,14 +65,28 @@ public class ChiTietHDDAO {
     public static List<ChiTietHoaDon> getByMaHD(String maHD) { return getAllByMaHD(maHD); }
 
     public boolean insert(ChiTietHoaDon ct) {
+        if (ct == null || ct.getHoaDon() == null || ct.getHoaDon().getMaHD() == null) {
+            System.err.println("Lỗi thêm CTHD: HoaDon hoặc maHD bị null");
+            return false;
+        }
+        String maHD = ct.getHoaDon().getMaHD();
+
         EntityTransaction tx = null;
         try (EntityManager em = em()) {
-            tx = em.getTransaction(); tx.begin();
+            tx = em.getTransaction();
+            tx.begin();
             em.createNativeQuery("INSERT INTO ChiTietHoaDon(maHD, maMon, soLuong) VALUES (:hd, :mon, :sl)")
-                .setParameter("hd", ct.getHoaDon().getMaHD()).setParameter("mon", ct.getMon().getMaMon())
-                .setParameter("sl", ct.getSoLuong()).executeUpdate();
-            tx.commit(); return true;
-        } catch (Exception e) { if (tx != null && tx.isActive()) tx.rollback(); System.err.println("Lỗi thêm CTHD: " + e.getMessage()); return false; }
+                .setParameter("hd", maHD)
+                .setParameter("mon", ct.getMon().getMaMon())
+                .setParameter("sl", ct.getSoLuong())
+                .executeUpdate();
+            tx.commit();
+            return true;
+        } catch (Exception e) {
+            if (tx != null && tx.isActive()) tx.rollback();
+            System.err.println("Lỗi thêm CTHD: " + e.getMessage());
+            return false;
+        }
     }
 
     public boolean delete(String maHD, String maMon) {
