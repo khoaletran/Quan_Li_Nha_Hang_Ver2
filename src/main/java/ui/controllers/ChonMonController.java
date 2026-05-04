@@ -695,9 +695,9 @@ public class ChonMonController {
     }
 
     private void tinhTienThua() {
-        double tong = parseCurrency(lblConLai.getText());
+        double coc = parseCurrency(lblCoc.getText());
         double tienKD = parseCurrency(txtTienKhachDua.getText());
-        double tienThua = tienKD - tong;
+        double tienThua = tienKD - coc;
 
         // Nếu tiền thừa < 1000 hoặc âm → gán 0
         if (tienThua < 1000) {
