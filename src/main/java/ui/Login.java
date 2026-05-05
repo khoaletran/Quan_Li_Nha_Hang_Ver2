@@ -6,10 +6,16 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import network.ClientConnection;
 import ui.controllers.LoginController;
 import ui.controllers.SplashController;
 
 import static ui.AppConstants.APP_LOGO;
+
+// ── Cấu hình kết nối Server ──────────────────────────────────────────────────
+// Đổi SERVER_HOST thành IP máy chủ nếu chạy trên mạng LAN
+// Ví dụ: "192.168.1.5"
+// SERVER_PORT phải trùng với MainServer.DEFAULT_PORT (mặc định 9999)
 
 public class Login extends Application {
 
@@ -59,12 +65,24 @@ public class Login extends Application {
         splashController.playAnimation();
     }
 
+    /** Host của máy chủ — đổi thành IP LAN khi deploy thực tế. */
+    private static final String SERVER_HOST = "localhost";
+    private static final int    SERVER_PORT = network.MainServer.DEFAULT_PORT;
+
+    @Override
+    public void stop() {
+        // Ngắt kết nối socket khi đóng app
+        ClientConnection.getInstance().disconnect();
+        System.out.println("[Client] Đã ngắt kết nối server.");
+    }
+
     public static void main(String[] args) {
-        // Khởi tạo JPA/Hibernate để tạo bảng tự động (hbm2ddl=update)
-        try {
-            infrastructure.db.JpaConfig.getEntityManagerFactory();
-        } catch (Exception e) {
-            System.err.println("Lỗi khởi tạo JPA: " + e.getMessage());
+        // Chỉ kết nối socket — KHÔNG khởi tạo JPA/DB ở phía client
+        boolean connected = ClientConnection.getInstance().connect(SERVER_HOST, SERVER_PORT);
+        if (!connected) {
+            System.err.println("[Client] CẢNH BÁO: Không kết nối được server "
+                + SERVER_HOST + ":" + SERVER_PORT
+                + " — app vẫn khởi động nhưng các chức năng sẽ lỗi.");
         }
         launch();
     }
