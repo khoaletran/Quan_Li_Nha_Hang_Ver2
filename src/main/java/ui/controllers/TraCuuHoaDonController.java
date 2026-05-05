@@ -98,7 +98,8 @@ public class TraCuuHoaDonController {
         khoiTaoComboBox();
         khoiTaoDatePicker();
         ganSuKienChoNut();
-        taiDanhSachHoaDon(null);
+        dsHoaDon.clear();
+        hienThiDanhSachHoaDon();
         resetForm();
 
         Tooltip tipFind = new Tooltip("Tìm kiếm nhanh (Ctrl + F)");
@@ -149,19 +150,21 @@ public class TraCuuHoaDonController {
     private void taiDanhSachHoaDon(List<HoaDon> hoaDonSelected) {
         try {
             List<HoaDon> listHD;
+
             if (hoaDonSelected == null) {
-                // Khi khởi tạo hoặc xóa bộ lọc → tải toàn bộ từ DB
-                listHD = hoaDonDAO.searchHoaDon("", null, null, null);
+                listHD = hoaDonDAO.getAll();
             } else {
                 listHD = hoaDonSelected;
             }
+
             dsHoaDon.clear();
             if (listHD != null)
                 dsHoaDon.addAll(listHD);
+
             hienThiDanhSachHoaDon();
             System.out.println("Đã tải " + dsHoaDon.size() + " hóa đơn");
+
         } catch (Exception ex) {
-            System.err.println("Lỗi khi tải danh sách hóa đơn: " + ex.getMessage());
             ex.printStackTrace();
         }
     }

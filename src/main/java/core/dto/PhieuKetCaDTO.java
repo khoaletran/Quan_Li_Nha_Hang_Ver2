@@ -1,11 +1,13 @@
 package core.dto;
 
 import lombok.*;
+
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /** DTO for PhieuKetCa — flattens NhanVien. */
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
-public class PhieuKetCaDTO {
+public class PhieuKetCaDTO  implements Serializable {
     private String maPhieu;
     private boolean ca;
     private int soHoaDon;

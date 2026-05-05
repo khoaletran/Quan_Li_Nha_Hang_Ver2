@@ -1,29 +1,32 @@
 package ui;
 
-import entity.NhanVien;
-import javafx.application.Application;
+import core.dto.NhanVienDTO;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
-import static ui.AppConstants.APP_LOGO;
-
 import javafx.stage.StageStyle;
 import ui.controllers.MainController_NV;
 import ui.controllers.SidebarController_NV;
 
 import java.time.LocalDateTime;
 
+import static ui.AppConstants.APP_LOGO;
+
+/**
+ * MainNV — khởi tạo cửa sổ chính cho Nhân Viên.
+ * Sử dụng NhanVienDTO thay cho entity.NhanVien.
+ */
 public class MainNV {
 
-    private NhanVien nvDangNhap;
+    private NhanVienDTO nvDangNhap;
     private LocalDateTime thoiGianVaoCa;
 
     public void setThoiGianVaoCa(LocalDateTime thoiGianVaoCa) {
         this.thoiGianVaoCa = thoiGianVaoCa;
     }
 
-    public void setNhanVienDangNhap(NhanVien nv) {
+    public void setNhanVienDangNhap(NhanVienDTO nv) {
         this.nvDangNhap = nv;
     }
 

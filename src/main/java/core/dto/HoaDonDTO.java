@@ -1,6 +1,8 @@
 package core.dto;
 
 import lombok.*;
+
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -8,7 +10,7 @@ import java.time.LocalDateTime;
  * Computed billing fields are populated by HoaDonService.
  */
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
-public class HoaDonDTO {
+public class HoaDonDTO  implements Serializable {
 
     private String maHD;
     private LocalDateTime tgLapHD;

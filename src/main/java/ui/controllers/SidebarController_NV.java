@@ -1,6 +1,6 @@
 package ui.controllers;
 
-import entity.NhanVien;
+import core.dto.NhanVienDTO;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -67,7 +67,7 @@ public class SidebarController_NV {
         });
     }
 
-    public void setThongTinNhanVien(NhanVien nv) {
+    public void setThongTinNhanVien(NhanVienDTO nv) {
         lblTenNV.setText(nv.getTenNV());
         lblChucVu.setText(nv.isQuanLi() ? "Quản Lí" : "Nhân Viên");
 

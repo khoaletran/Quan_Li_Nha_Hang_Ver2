@@ -2,9 +2,11 @@ package core.dto;
 
 import lombok.*;
 
+import java.io.Serializable;
+
 /** DTO for Coc. */
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
-public class CocDTO {
+public class CocDTO  implements Serializable {
     private String maCoc;
     private boolean loaiCoc;
     private int phanTramCoc;

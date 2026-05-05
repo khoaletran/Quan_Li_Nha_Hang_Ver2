@@ -31,26 +31,38 @@ import java.util.List;
 
 public class DatBanController {
 
-    @FXML private DatePicker datePicker;
-    @FXML private Spinner<Integer> hourSpinner;
-    @FXML private Spinner<Integer> minuteSpinner;
-    @FXML private TextField noteField;
+    @FXML
+    private DatePicker datePicker;
+    @FXML
+    private Spinner<Integer> hourSpinner;
+    @FXML
+    private Spinner<Integer> minuteSpinner;
+    @FXML
+    private TextField noteField;
 
-    @FXML private ImageView starOut_01, starOut_02, starOut_03, starOut_04;
-    @FXML private ImageView starIN_01, starIN_02, starIN_03, starIN_04;
-    @FXML private ImageView starVIP_01, starVIP_02;
+    @FXML
+    private ImageView starOut_01, starOut_02, starOut_03, starOut_04;
+    @FXML
+    private ImageView starIN_01, starIN_02, starIN_03, starIN_04;
+    @FXML
+    private ImageView starVIP_01, starVIP_02;
 
-    @FXML private VBox tableOut_01, tableOut_02, tableOut_03, tableOut_04;
-    @FXML private VBox tableIN_01, tableIN_02, tableIN_03, tableIN_04;
-    @FXML private VBox tableVIP_01, tableVIP_02;
+    @FXML
+    private VBox tableOut_01, tableOut_02, tableOut_03, tableOut_04;
+    @FXML
+    private VBox tableIN_01, tableIN_02, tableIN_03, tableIN_04;
+    @FXML
+    private VBox tableVIP_01, tableVIP_02;
 
-    @FXML private Button btnWaitlist;
-    @FXML private TextField txtTenKH, txtSDT, txtGhiChu, txtSoLuong;
-    @FXML private ComboBox<String> cboKhuVuc, cboLoaiBan;
-
+    @FXML
+    private Button btnWaitlist;
+    @FXML
+    private TextField txtTenKH, txtSDT, txtGhiChu, txtSoLuong;
+    @FXML
+    private ComboBox<String> cboKhuVuc, cboLoaiBan;
 
     private MainController_NV mainController;
-    private NhanVien nv;
+    private core.dto.NhanVienDTO nv;
 
     private Timeline debounceTimer;
     private LocalDateTime lastSelectedTime;
@@ -63,35 +75,41 @@ public class DatBanController {
 
         datePicker.setValue(LocalDate.now());
 
-        SpinnerValueFactory<Integer> hourFactory =
-                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 23, defaultTime.getHour()) {
-                    @Override
-                    public void decrement(int steps) { setValue((getValue() - steps + 24) % 24); }
-                    @Override
-                    public void increment(int steps) { setValue((getValue() + steps) % 24); }
-                };
+        SpinnerValueFactory<Integer> hourFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 23,
+                defaultTime.getHour()) {
+            @Override
+            public void decrement(int steps) {
+                setValue((getValue() - steps + 24) % 24);
+            }
 
-        SpinnerValueFactory<Integer> minuteFactory =
-                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59, defaultTime.getMinute()) {
-                    @Override
-                    public void decrement(int steps) {
-                        int v = getValue() - steps;
-                        if (v < 0) {
-                            hourSpinner.decrement();
-                            v += 60;
-                        }
-                        setValue(v % 60);
-                    }
-                    @Override
-                    public void increment(int steps) {
-                        int v = getValue() + steps;
-                        if (v > 59) {
-                            hourSpinner.increment();
-                            v %= 60;
-                        }
-                        setValue(v);
-                    }
-                };
+            @Override
+            public void increment(int steps) {
+                setValue((getValue() + steps) % 24);
+            }
+        };
+
+        SpinnerValueFactory<Integer> minuteFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59,
+                defaultTime.getMinute()) {
+            @Override
+            public void decrement(int steps) {
+                int v = getValue() - steps;
+                if (v < 0) {
+                    hourSpinner.decrement();
+                    v += 60;
+                }
+                setValue(v % 60);
+            }
+
+            @Override
+            public void increment(int steps) {
+                int v = getValue() + steps;
+                if (v > 59) {
+                    hourSpinner.increment();
+                    v %= 60;
+                }
+                setValue(v);
+            }
+        };
 
         hourSpinner.setValueFactory(hourFactory);
         minuteSpinner.setValueFactory(minuteFactory);
@@ -107,17 +125,21 @@ public class DatBanController {
         thayDoiSLKhach();
 
         loadComboBoxes();
-        cboKhuVuc.setOnAction(e -> {scheduleRefresh();});
+        cboKhuVuc.setOnAction(e -> {
+            scheduleRefresh();
+        });
         txtSoLuong.textProperty().addListener((obs, oldVal, newVal) -> locTheoRealTime());
         cboKhuVuc.setOnAction(e -> locTheoRealTime());
-        btnWaitlist.setOnAction(e -> {themVaoWaitlist();});
+        btnWaitlist.setOnAction(e -> {
+            themVaoWaitlist();
+        });
 
         Platform.runLater(() -> addShortcuts(noteField.getScene()));
         Tooltip tipNew = new Tooltip("Nhập số lượng chỗ (Ctrl + D)");
         Tooltip.install(noteField, tipNew);
     }
 
-    private void addShortcuts(Scene scene){
+    private void addShortcuts(Scene scene) {
         KeyCombination ctrlD = new KeyCodeCombination(KeyCode.D, KeyCombination.CONTROL_DOWN);
         scene.getAccelerators().put(ctrlD, () -> {
             noteField.requestFocus();
@@ -137,27 +159,35 @@ public class DatBanController {
         return now.toLocalTime();
     }
 
-    private void thayDoiSLKhach(){
+    private void thayDoiSLKhach() {
         txtSoLuong.textProperty().addListener((obs, oldVal, newVal) -> {
-            if (!noteField.getText().equals(newVal)) noteField.setText(newVal);
+            if (!noteField.getText().equals(newVal))
+                noteField.setText(newVal);
         });
         noteField.textProperty().addListener((obs, oldVal, newVal) -> {
-            if (!txtSoLuong.getText().equals(newVal)) txtSoLuong.setText(newVal);
+            if (!txtSoLuong.getText().equals(newVal))
+                txtSoLuong.setText(newVal);
         });
     }
 
-
     private void scheduleRefresh() {
-        if (debounceTimer != null) debounceTimer.stop();
+        if (debounceTimer != null)
+            debounceTimer.stop();
         debounceTimer = new Timeline(new KeyFrame(Duration.millis(300), e -> locTheoRealTime()));
         debounceTimer.play();
     }
 
-    public void setNhanVien(NhanVien nv) { this.nv = nv; }
-    public void setMainController(MainController_NV controller) { this.mainController = controller; }
+    public void setNhanVien(core.dto.NhanVienDTO nv) {
+        this.nv = nv;
+    }
+
+    public void setMainController(MainController_NV controller) {
+        this.mainController = controller;
+    }
 
     private boolean isThoiGianHopLe(LocalDate date, int hour, int minute) {
-        if (date == null) return false;
+        if (date == null)
+            return false;
         return !LocalDateTime.of(date, LocalTime.of(hour, minute)).isBefore(LocalDateTime.now());
     }
 
@@ -166,8 +196,11 @@ public class DatBanController {
         int hour = hourSpinner.getValue();
         int minute = minuteSpinner.getValue();
         int soLuong;
-        try { soLuong = Integer.parseInt(noteField.getText()); }
-        catch (NumberFormatException e) { soLuong = 0; }
+        try {
+            soLuong = Integer.parseInt(noteField.getText());
+        } catch (NumberFormatException e) {
+            soLuong = 0;
+        }
 
         LocalDateTime selectedTime = LocalDateTime.of(date, LocalTime.of(hour, minute));
         if (lastSelectedTime != null && selectedTime.equals(lastSelectedTime) && soLuong == lastSoLuong)
@@ -229,32 +262,36 @@ public class DatBanController {
     }
 
     private void voHieuHoaTatCaBan() {
-        VBox[] tables = {tableOut_01, tableOut_02, tableOut_03, tableOut_04,
+        VBox[] tables = { tableOut_01, tableOut_02, tableOut_03, tableOut_04,
                 tableIN_01, tableIN_02, tableIN_03, tableIN_04,
-                tableVIP_01, tableVIP_02};
-        ImageView[] stars = {starOut_01, starOut_02, starOut_03, starOut_04,
+                tableVIP_01, tableVIP_02 };
+        ImageView[] stars = { starOut_01, starOut_02, starOut_03, starOut_04,
                 starIN_01, starIN_02, starIN_03, starIN_04,
-                starVIP_01, starVIP_02};
+                starVIP_01, starVIP_02 };
         Image starWhite = loadImage("/IMG/icon/starwhite.png");
         for (int i = 0; i < tables.length; i++) {
             tables[i].setDisable(true);
             stars[i].setOpacity(0.2);
-            if (starWhite != null) stars[i].setImage(starWhite);
+            if (starWhite != null)
+                stars[i].setImage(starWhite);
         }
     }
 
     private void capNhatHienThi(ImageView star, VBox table, String maKV, String maLB,
-                                int minKhach, int maxKhach, List<HoaDon> dsHD) {
+            int minKhach, int maxKhach, List<HoaDon> dsHD) {
 
         int soLuong;
-        try { soLuong = Integer.parseInt(noteField.getText()); }
-        catch (NumberFormatException e) { soLuong = 0; }
+        try {
+            soLuong = Integer.parseInt(noteField.getText());
+        } catch (NumberFormatException e) {
+            soLuong = 0;
+        }
 
         LocalDate date = datePicker.getValue();
         int hour = hourSpinner.getValue();
         int minute = minuteSpinner.getValue();
 
-        if (date == null || soLuong <= 0) {  // FIX
+        if (date == null || soLuong <= 0) { // FIX
             tatBan(star, table);
             return;
         }
@@ -262,7 +299,7 @@ public class DatBanController {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime selected = LocalDateTime.of(date, LocalTime.of(hour, minute));
 
-        if (selected.isBefore(now)) {        // FIX
+        if (selected.isBefore(now)) { // FIX
             tatBan(star, table);
             return;
         }
@@ -288,11 +325,11 @@ public class DatBanController {
             return;
         }
 
-        if (soLuong >= minKhach && soLuong <= maxKhach) moBanSaoSang(star, table);
-        else moBanSaoTrang(star, table);
+        if (soLuong >= minKhach && soLuong <= maxKhach)
+            moBanSaoSang(star, table);
+        else
+            moBanSaoTrang(star, table);
     }
-
-
 
     private static Image loadImage(String path) {
         var url = DatBanController.class.getResource(path);
@@ -308,21 +345,24 @@ public class DatBanController {
         star.setOpacity(0.2);
 
         Image img = loadImage("/IMG/icon/starwhite.png"); // đúng theo resource đang có
-        if (img != null) star.setImage(img);
+        if (img != null)
+            star.setImage(img);
     }
 
     private void moBanSaoTrang(ImageView star, VBox table) {
         table.setDisable(false);
         star.setOpacity(0.7);
         Image img = loadImage("/IMG/icon/starwhite.png"); // đúng theo resource đang có
-        if (img != null) star.setImage(img);
+        if (img != null)
+            star.setImage(img);
     }
 
     private void moBanSaoSang(ImageView star, VBox table) {
         table.setDisable(false);
         star.setOpacity(1.0);
         Image img = loadImage("/IMG/icon/star.png"); // đúng theo resource đang có
-        if (img != null) star.setImage(img);
+        if (img != null)
+            star.setImage(img);
     }
 
     private void ganSuKienChoBan() {
@@ -340,21 +380,31 @@ public class DatBanController {
 
     private int getThoiGianDatTruocToiThieu(String maLoaiBan) {
         switch (maLoaiBan) {
-            case "LB0001": return 4;
-            case "LB0002": return 4;
-            case "LB0003": return 6;
-            case "LB0004": return 8;
-            case "LB0005": return 12;
-            default: return 4;
+            case "LB0001":
+                return 4;
+            case "LB0002":
+                return 4;
+            case "LB0003":
+                return 6;
+            case "LB0004":
+                return 8;
+            case "LB0005":
+                return 12;
+            default:
+                return 4;
         }
     }
 
     private void chonBanNeuDuoc(String maKV, String maLB, int sucChua) {
         int soLuong;
-        try { soLuong = Integer.parseInt(noteField.getText()); }
-        catch (NumberFormatException e) { soLuong = 0; }
+        try {
+            soLuong = Integer.parseInt(noteField.getText());
+        } catch (NumberFormatException e) {
+            soLuong = 0;
+        }
 
-        if (soLuong > sucChua || soLuong <= 0) return;
+        if (soLuong > sucChua || soLuong <= 0)
+            return;
 
         LocalDate date = datePicker.getValue();
         int hour = hourSpinner.getValue();
@@ -362,7 +412,8 @@ public class DatBanController {
         LocalDateTime selected = LocalDateTime.of(date, LocalTime.of(hour, minute));
 
         Ban ban = BanDAO.getMotBanTrongTheoLoaiVaKV(maKV, maLB, soLuong, selected);
-        if (ban == null) return;
+        if (ban == null)
+            return;
         chonBan(ban, soLuong, date, hour, minute);
     }
 
@@ -395,7 +446,8 @@ public class DatBanController {
         for (KhuVuc kv : dsKV) {
             cboKhuVuc.getItems().add(kv.getTenKhuVuc() + " (" + kv.getMaKhuVuc() + ")");
         }
-        if (!cboKhuVuc.getItems().isEmpty()) cboKhuVuc.getSelectionModel().selectFirst();
+        if (!cboKhuVuc.getItems().isEmpty())
+            cboKhuVuc.getSelectionModel().selectFirst();
     }
 
     @FXML
@@ -421,8 +473,7 @@ public class DatBanController {
 
             boolean xacNhan = ConfirmCus.show(
                     "Xác nhận tạo bàn đợi",
-                    "Tạo bàn đợi cho " + soLuong + " khách tại khu vực đã chọn?"
-            );
+                    "Tạo bàn đợi cho " + soLuong + " khách tại khu vực đã chọn?");
 
             if (!xacNhan) {
                 System.out.println("Người dùng đã hủy tạo bàn đợi.");
@@ -456,7 +507,6 @@ public class DatBanController {
         }
     }
 
-
     private String getSelectedMaKhuVuc() {
         String val = cboKhuVuc.getValue();
         if (val == null || val.isEmpty()) {
@@ -489,15 +539,14 @@ public class DatBanController {
         btnWaitlist.setVisible(true);
 
         double startOpacity = hienWaitlist ? 0.0 : 1.0;
-        double endOpacity   = hienWaitlist ? 1.0 : 0.0;
+        double endOpacity = hienWaitlist ? 1.0 : 0.0;
 
         btnWaitlist.setOpacity(startOpacity);
 
         waitlistFade = new Timeline(
                 new KeyFrame(Duration.millis(120),
                         new javafx.animation.KeyValue(
-                                btnWaitlist.opacityProperty(), endOpacity))
-        );
+                                btnWaitlist.opacityProperty(), endOpacity)));
 
         waitlistFade.setOnFinished(e -> {
             btnWaitlist.setVisible(hienWaitlist);
@@ -507,6 +556,5 @@ public class DatBanController {
 
         waitlistFade.play();
     }
-
 
 }

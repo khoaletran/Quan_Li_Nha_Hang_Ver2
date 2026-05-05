@@ -1,11 +1,13 @@
 package core.dto;
 
 import lombok.*;
+
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /** DTO for PhanTramGiaBan. */
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
-public class PhanTramGiaBanDTO {
+public class PhanTramGiaBanDTO  implements Serializable {
     private String maPTGB;
     private int phanTramLoi;
     private LocalDateTime ngayApDung;

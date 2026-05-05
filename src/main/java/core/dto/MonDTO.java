@@ -2,9 +2,11 @@ package core.dto;
 
 import lombok.*;
 
+import java.io.Serializable;
+
 /** DTO for Mon — includes computed giaBan. */
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
-public class MonDTO {
+public class MonDTO implements Serializable {
     private String maMon;
     private String tenMon;
     private String moTa;

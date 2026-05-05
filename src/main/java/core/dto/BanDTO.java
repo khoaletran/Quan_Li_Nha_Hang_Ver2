@@ -2,9 +2,11 @@ package core.dto;
 
 import lombok.*;
 
+import java.io.Serializable;
+
 /** DTO for Ban — flattens LoaiBan and KhuVuc. */
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
-public class BanDTO {
+public class BanDTO implements Serializable {
     private String maBan;
     private boolean trangThai;
 

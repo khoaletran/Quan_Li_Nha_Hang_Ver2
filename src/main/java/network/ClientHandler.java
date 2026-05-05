@@ -61,17 +61,49 @@ public class ClientHandler implements Runnable {
         Map<CommandType, CommandHandler> map = new EnumMap<>(CommandType.class);
 
         // ── System ────────────────────────────────────────────────────────────
-        map.put(CommandType.PING,       new PingHandler());
-        map.put(CommandType.DISCONNECT, new DisconnectHandler());
+        map.put(CommandType.PING,                    new PingHandler());
+        map.put(CommandType.DISCONNECT,              new DisconnectHandler());
 
         // ── Auth ──────────────────────────────────────────────────────────────
-        map.put(CommandType.LOGIN,      new LoginHandler());
+        map.put(CommandType.LOGIN,                   new LoginHandler());
 
-        // TODO: Đăng ký thêm handler khi implement:
-        // map.put(CommandType.NV_GET_ALL,  new NhanVienGetAllHandler());
-        // map.put(CommandType.MON_GET_ALL, new MonGetAllHandler());
-        // map.put(CommandType.HD_INSERT,   new HoaDonInsertHandler());
-        // ...
+        // ── Nhân Viên ─────────────────────────────────────────────────────────
+        map.put(CommandType.NV_GET_ALL,              new NvGetAllHandler());
+        map.put(CommandType.NV_GET_BY_ID,            new NvGetByIdHandler());
+        map.put(CommandType.NV_INSERT,               new NvInsertHandler());
+        map.put(CommandType.NV_UPDATE,               new NvUpdateHandler());
+        map.put(CommandType.NV_DELETE,               new NvDeleteHandler());
+
+        // ── Món ───────────────────────────────────────────────────────────────
+        map.put(CommandType.MON_GET_ALL,             new MonGetAllHandler());
+        map.put(CommandType.MON_GET_BY_ID,           new MonGetByIdHandler());
+        map.put(CommandType.MON_INSERT,              new MonInsertHandler());
+        map.put(CommandType.MON_UPDATE,              new MonUpdateHandler());
+        map.put(CommandType.MON_DELETE,              new MonDeleteHandler());
+
+        // ── Hóa Đơn ───────────────────────────────────────────────────────────
+        map.put(CommandType.HD_GET_ALL,              new HdGetAllHandler());
+        map.put(CommandType.HD_GET_BY_ID,            new HdGetByIdHandler());
+        map.put(CommandType.HD_INSERT,               new HdInsertHandler());
+        map.put(CommandType.HD_CHECKOUT,             new HdCheckoutHandler());
+
+        // ── Bàn ───────────────────────────────────────────────────────────────
+        map.put(CommandType.BAN_GET_ALL,             new BanGetAllHandler());
+        map.put(CommandType.BAN_UPDATE_TRANG_THAI,   new BanUpdateTrangThaiHandler());
+
+        // ── Khách Hàng ────────────────────────────────────────────────────────
+        map.put(CommandType.KH_GET_ALL,              new KhGetAllHandler());
+        map.put(CommandType.KH_GET_BY_ID,            new KhGetByIdHandler());
+        map.put(CommandType.KH_INSERT,               new KhInsertHandler());
+        map.put(CommandType.KH_UPDATE,               new KhUpdateHandler());
+
+        // ── Khuyến Mãi ────────────────────────────────────────────────────────
+        map.put(CommandType.KM_GET_ALL,              new KmGetAllHandler());
+        map.put(CommandType.KM_GET_ACTIVE,           new KmGetActiveHandler());
+
+        // ── Thống Kê ──────────────────────────────────────────────────────────
+        map.put(CommandType.TK_DOANH_THU,            new TkDoanhThuHandler());
+        map.put(CommandType.TK_MON_BAN_CHAY,         new TkMonBanChayHandler());
 
         return java.util.Collections.unmodifiableMap(map);
     }

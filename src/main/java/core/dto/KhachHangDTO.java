@@ -2,9 +2,11 @@ package core.dto;
 
 import lombok.*;
 
+import java.io.Serializable;
+
 /** DTO for KhachHang — flattens HangKhachHang relationship. */
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
-public class KhachHangDTO {
+public class KhachHangDTO  implements Serializable {
     private String maKH;
     private String tenKH;
     private String sdt;

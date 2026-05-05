@@ -1,33 +1,33 @@
 package ui;
 
-import entity.NhanVien;
-import javafx.application.Application;
+import core.dto.NhanVienDTO;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
-
 import javafx.stage.StageStyle;
 import ui.controllers.MainController_QL;
 import ui.controllers.SidebarController_QL;
 
 import static ui.AppConstants.APP_LOGO;
 
+/**
+ * MainQL — khởi tạo cửa sổ chính cho Quản Lý.
+ * Sử dụng NhanVienDTO thay cho entity.NhanVien.
+ */
 public class MainQL {
 
-    private NhanVien nvDangNhap;
+    private NhanVienDTO nvDangNhap;
 
-    public void setNhanVienDangNhap(NhanVien nv) {
+    public void setNhanVienDangNhap(NhanVienDTO nv) {
         this.nvDangNhap = nv;
     }
-
 
     public void show(Stage stage) throws Exception {
         FXMLLoader loader = new FXMLLoader(Login.class.getResource("/FXML/MainQuanLi.fxml"));
         BorderPane root = loader.load();
 
         MainController_QL mainController = loader.getController();
-
         mainController.setNhanVien(nvDangNhap);
 
         SidebarController_QL sidebarController = mainController.getsidebar_QLController();

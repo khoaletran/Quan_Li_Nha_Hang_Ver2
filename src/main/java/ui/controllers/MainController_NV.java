@@ -1,6 +1,6 @@
 package ui.controllers;
 
-import entity.NhanVien;
+import core.dto.NhanVienDTO;
 import javafx.animation.FadeTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -13,15 +13,22 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.function.Consumer;
 
+/**
+ * MainController_NV — điều hướng màn hình nhân viên.
+ * Sử dụng NhanVienDTO thay cho entity.NhanVien.
+ */
 public class MainController_NV {
 
-    @FXML private StackPane mainContent;
-    @FXML private SidebarController_NV sidebar_NVController;
+    @FXML
+    private StackPane mainContent;
+    @FXML
+    private SidebarController_NV sidebar_NVController;
 
-    private NhanVien nhanVien;
+    private NhanVienDTO nhanVien;
     private LocalDateTime thoiGianVaoCa;
 
-    @FXML private TopBarController topBarNVController;
+    @FXML
+    private TopBarController topBarNVController;
 
     public SidebarController_NV getSidebarController() {
         return sidebar_NVController;
@@ -49,22 +56,16 @@ public class MainController_NV {
         });
     }
 
-
     private void addKeyboardShortcuts(Scene scene) {
         scene.setOnKeyPressed(event -> {
-
             switch (event.getCode()) {
-
-                // MENU CHÍNH NV
                 case DIGIT1 -> sidebar_NVController.selectTab(1);
                 case DIGIT2 -> sidebar_NVController.selectTab(2);
                 case DIGIT3 -> sidebar_NVController.selectTab(3);
                 case DIGIT4 -> sidebar_NVController.selectTab(4);
                 case DIGIT5 -> sidebar_NVController.selectTab(5);
                 case DIGIT6 -> sidebar_NVController.selectTab(6);
-
-                // SUBMENU:
-                case F1 -> sidebar_NVController.selectTab(21); // Đặt bàn
+                case F1 -> sidebar_NVController.selectTab(21);
                 case F2 -> sidebar_NVController.selectTab(22);
                 case F3 -> sidebar_NVController.selectTab(23);
                 case F4 -> sidebar_NVController.selectTab(24);
@@ -72,14 +73,14 @@ public class MainController_NV {
         });
     }
 
-
-    public void setNhanVien(NhanVien nhanVien) {
+    public void setNhanVien(NhanVienDTO nhanVien) {
         this.nhanVien = nhanVien;
-//        topBarNVController.setUserInfo(nhanVien.getTenNV(),"Nhân Viên");
         loadDefaultView();
     }
 
-    public NhanVien getNhanVien() {return nhanVien;}
+    public NhanVienDTO getNhanVien() {
+        return nhanVien;
+    }
 
     private void loadDefaultView() {
         setCenterContent("/FXML/DashBoard.fxml");
@@ -96,7 +97,6 @@ public class MainController_NV {
     public LocalDateTime getThoiGianVaoCa() {
         return thoiGianVaoCa;
     }
-
 
     public void setCenterContent(String fxmlPath) {
         try {
@@ -121,14 +121,9 @@ public class MainController_NV {
             }
 
             if (controller instanceof BanGiaoCaController banGiaoCaCtrl) {
-                banGiaoCaCtrl.setThoiGianVaoCa(thoiGianVaoCa);
-            }
-
-            if (controller instanceof BanGiaoCaController banGiaoCaCtrl) {
                 banGiaoCaCtrl.initData(nhanVien);
                 banGiaoCaCtrl.setThoiGianVaoCa(thoiGianVaoCa);
             }
-
 
             FadeTransition fadeIn = new FadeTransition(Duration.millis(300), node);
             fadeIn.setFromValue(0);
@@ -149,12 +144,10 @@ public class MainController_NV {
 
             Object controller = loader.getController();
 
-            // Gọi callback trước
             if (controllerCallback != null) {
                 controllerCallback.accept(controller);
             }
 
-            // === GIỮ NGUYÊN LOGIC CŨ ===
             if (controller instanceof ChonMonController chonMonCtrl) {
                 chonMonCtrl.setMainController(this);
                 chonMonCtrl.setNhanVien(nhanVien);
@@ -186,6 +179,4 @@ public class MainController_NV {
             e.printStackTrace();
         }
     }
-
-
 }

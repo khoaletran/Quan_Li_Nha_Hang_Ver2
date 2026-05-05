@@ -1,10 +1,10 @@
 package ui.controllers;
 
+import core.dto.NhanVienDTO;
 import dao.HoaDonDAO;
 import dao.MonDAO;
 import entity.HoaDon;
 import entity.Mon;
-import entity.NhanVien;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
@@ -70,7 +70,7 @@ public class DashboardController {
     @FXML private BarChart<String, Number> barChart;
     @FXML private LineChart<String, Number> lineChart;
 
-    private NhanVien nv;
+    private NhanVienDTO nv;
     private MainController_NV mainControllerNV;
     private MainController_QL mainController;
 
@@ -128,7 +128,7 @@ public class DashboardController {
         hienThiThongTinNhanVien();
     }
 
-    public void setNhanVien(NhanVien nv) {
+    public void setNhanVien(NhanVienDTO nv) {
         this.nv = nv;
         hienThiThongTinNhanVien();
 
@@ -451,7 +451,7 @@ public class DashboardController {
             Parent loginRoot = loader.load();
 
             LoginController loginController = loader.getController();
-            loginController.setNhanVien(nv);
+            loginController.setNhanVien(nv);  // NhanVienDTO bridge method
             loginController.showResetPane();
 
             Stage stage = new Stage();
@@ -474,7 +474,7 @@ public class DashboardController {
 
     private void kiemTraThongBaoCheckIn() {
         if (box_not == null) return;
-        if(nv != null && nv.isQuanLi()){
+        if (nv != null && nv.isQuanLi()) {
             MonDAO monAnDAO = new MonDAO();
             box_not.getChildren().clear();
 

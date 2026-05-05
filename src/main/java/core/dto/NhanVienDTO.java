@@ -1,11 +1,13 @@
 package core.dto;
 
 import lombok.*;
+
+import java.io.Serializable;
 import java.time.LocalDate;
 
 /** DTO for NhanVien. */
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
-public class NhanVienDTO {
+public class NhanVienDTO implements Serializable {
     private String maNV;
     private String tenNV;
     private String sdt;

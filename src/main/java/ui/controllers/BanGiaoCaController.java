@@ -2,10 +2,10 @@ package ui.controllers;
 
 import core.dto.PhieuKetCaDTO;
 import core.service.PhieuKetCaService;
+import core.dto.NhanVienDTO;
 import dao.HoaDonDAO;
 import entity.ChiTietHoaDon;
 import entity.HoaDon;
-import entity.NhanVien;
 import entity.PhieuKetCa;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -44,7 +44,7 @@ public class BanGiaoCaController {
 
     private PhieuKetCaService phieuKetCaService = new PhieuKetCaService();
     private HoaDonDAO hoaDonDAO = new HoaDonDAO();
-    private NhanVien nhanVien;
+    private NhanVienDTO nhanVien;
     private LocalDateTime thoiGianVaoCa;
     private double heThongTienMat = 0;
     private double heThongTienCK = 0;
@@ -79,7 +79,7 @@ public class BanGiaoCaController {
         });
     }
 
-    public void initData(NhanVien nv) {
+    public void initData(NhanVienDTO nv) {
         this.nhanVien = nv;
         loadHoaDonTrongCaLam();
     }
@@ -208,7 +208,7 @@ public class BanGiaoCaController {
         txtCaLam.setText(caLam);
     }
 
-    public void setNhanVien(NhanVien nhanVien) {
+    public void setNhanVien(NhanVienDTO nhanVien) {
         this.nhanVien = nhanVien;
     }
 

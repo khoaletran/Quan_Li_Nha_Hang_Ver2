@@ -56,7 +56,7 @@ public class ChonMonController {
     private final LoaiMonDAO loaiMonDAO = new LoaiMonDAO();
 
     private Ban banHienTai = null;
-    private NhanVien nhanVienHien;
+    private core.dto.NhanVienDTO nhanVienHien;
     private LocalDateTime thoiGianDat;
     private int soLuongKhach;
     private SuKien sk;
@@ -162,7 +162,7 @@ public class ChonMonController {
         setNhanVien(mainController.getNhanVien());
     }
 
-    public void setNhanVien(NhanVien nhanVien) {
+    public void setNhanVien(core.dto.NhanVienDTO nhanVien) {
         this.nhanVienHien = nhanVien;
     }
 
@@ -962,7 +962,14 @@ public class ChonMonController {
         HoaDon hd = new HoaDon();
         hd.setMaHD(maHD);
         hd.setKhachHang(khachHang);
-        hd.setNhanVien(nhanVienHien);
+        
+        NhanVien nvEntity = new NhanVien();
+        if (nhanVienHien != null) {
+            nvEntity.setMaNV(nhanVienHien.getMaNV());
+            nvEntity.setTenNV(nhanVienHien.getTenNV());
+        }
+        hd.setNhanVien(nvEntity);
+        
         hd.setBan(banHienTai);
         hd.setTgLapHD(LocalDateTime.now());
         if (banHienTai.getMaBan().startsWith("W")) {

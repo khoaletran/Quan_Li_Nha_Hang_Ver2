@@ -1,7 +1,6 @@
 package ui.controllers;
 
-import entity.Mon;
-import entity.NhanVien;
+import core.dto.NhanVienDTO;
 import javafx.animation.FadeTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -14,30 +13,33 @@ import javafx.util.Duration;
 
 import java.io.IOException;
 
+/**
+ * MainController_QL — điều hướng màn hình quản lý.
+ * Sử dụng NhanVienDTO thay cho entity.NhanVien.
+ *
+ * Lưu ý: setCenterContent(String, Mon) và openQLMenuWithMon(Mon) tạm thời
+ * giữ lại để không phá vỡ DashboardController vẫn đang dùng entity.Mon.
+ * Chúng sẽ được migrate sang MonDTO trong phase sau.
+ */
 public class MainController_QL {
 
     @FXML private StackPane mainContent;
     @FXML private SidebarController_QL sidebar_QLController;
 
-    private NhanVien nhanVien;
+    private NhanVienDTO nhanVien;
     @FXML private ui.controllers.TopBarController topBarQlController;
 
     public SidebarController_QL getsidebar_QLController() {
-        return sidebar_QLController ;
+        return sidebar_QLController;
     }
 
     @FXML
     public void initialize() {
         javafx.application.Platform.runLater(() -> {
-            // Lấy stage hiện tại từ top bar
             Stage stage = (Stage) topBarQlController
                     .getRoot().getScene().getWindow();
-
-            // Bind cho top bar (kéo, nút thu nhỏ/phóng to,...)
             topBarQlController.bindStage(stage);
             topBarQlController.setTitle("CrabKing Restaurant");
-
-            // CẤU HÌNH NÚT ĐĂNG XUẤT: truyền stage vào dialog
             topBarQlController.configureActionButton("Đăng Xuất",
                     () -> ui.DangXuat.showDialog(stage));
         });
@@ -52,8 +54,6 @@ public class MainController_QL {
             }
         });
     }
-
-
 
     private void addKeyboardShortcuts(Scene scene) {
         scene.setOnKeyPressed(event -> {
@@ -70,14 +70,12 @@ public class MainController_QL {
         });
     }
 
-
-    public void setNhanVien(NhanVien nhanVien) {
+    public void setNhanVien(NhanVienDTO nhanVien) {
         this.nhanVien = nhanVien;
-//        topBarQlController.setUserInfo(nhanVien.getTenNV(),"Quản Lí");
         setCenterContent("/FXML/DashBoard.fxml");
     }
 
-    public NhanVien getNhanVien() {
+    public NhanVienDTO getNhanVien() {
         return nhanVien;
     }
 
@@ -91,7 +89,7 @@ public class MainController_QL {
                 dashboardController.setMainController(this);
                 dashboardController.setNhanVien(nhanVien);
             } else if (controller instanceof ThongKeController thongKeController) {
-                thongKeController.setMainController(this); // truyền MainController_QL
+                thongKeController.setMainController(this);
             }
 
             FadeTransition fadeIn = new FadeTransition(Duration.millis(300), node);
@@ -105,39 +103,22 @@ public class MainController_QL {
         }
     }
 
-
-
-    public void setCenterContent(String fxmlPath, Mon mon) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-            Parent root = loader.load();
-            sidebar_QLController.selectTab(3);
-            // Lấy controller của QLMenu
-            QLMenuController controller = loader.getController();
-            if (mon != null) {
-                controller.setSearchKeyword(mon.getTenMon());
-            }
-
-            mainContent.getChildren().setAll(root);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void openQLMenuWithMon(Mon mon) {
+    /**
+     * Mở màn hình QLMenu với một món được tìm kiếm theo tên.
+     * Tạm thời dùng String tenMon để tương thích — không cần entity.Mon.
+     */
+    public void openQLMenuWithKeyword(String tenMon) {
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/FXML/QLMenu.fxml")
             );
-
             Parent root = loader.load();
 
             QLMenuController controller = loader.getController();
-            controller.setSelectedMon(mon);
             controller.setMainController(this);
 
-            if (mon != null) {
-                controller.setSearchKeyword(mon.getTenMon());
+            if (tenMon != null && !tenMon.isBlank()) {
+                controller.setSearchKeyword(tenMon);
             }
 
             sidebar_QLController.selectTab(2);
@@ -154,4 +135,25 @@ public class MainController_QL {
         }
     }
 
+    /**
+     * Giữ lại tương thích với DashboardController đang truyền entity.Mon.
+     * Sẽ được xoá sau khi DashboardController được migrate sang MonDTO.
+     *
+     * @deprecated Dùng openQLMenuWithKeyword(String tenMon) thay thế.
+     */
+    @Deprecated
+    public void openQLMenuWithMon(entity.Mon mon) {
+        openQLMenuWithKeyword(mon != null ? mon.getTenMon() : null);
+    }
+
+    /**
+     * Giữ lại tương thích với các nơi gọi setCenterContent(fxml, Mon).
+     *
+     * @deprecated Dùng openQLMenuWithKeyword(String) thay thế.
+     */
+    @Deprecated
+    public void setCenterContent(String fxmlPath, entity.Mon mon) {
+        sidebar_QLController.selectTab(3);
+        openQLMenuWithKeyword(mon != null ? mon.getTenMon() : null);
+    }
 }
