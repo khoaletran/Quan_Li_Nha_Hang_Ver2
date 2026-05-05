@@ -25,37 +25,55 @@ import java.util.Locale;
 
 public class QLDatBanController {
 
-    //danh sách
-    @FXML private VBox danhSachDatTruoc, vboxChiTietDonHang;
-    @FXML private VBox danhSachDaNhan;
-    @FXML private FlowPane foodList;
+    // danh sách
+    @FXML
+    private VBox danhSachDatTruoc, vboxChiTietDonHang;
+    @FXML
+    private VBox danhSachDaNhan;
+    @FXML
+    private FlowPane foodList;
 
-    //thông tin chi tiết
-    @FXML private Label lblMaHoaDon;
-    @FXML private Label lblHoTen;
-    @FXML private Label lblSDT;
-    @FXML private Label lblBan;
-    @FXML private TextField txtSoLuongKhach;
-    @FXML private ComboBox<String> eventCombo;
+    // thông tin chi tiết
+    @FXML
+    private Label lblMaHoaDon;
+    @FXML
+    private Label lblHoTen;
+    @FXML
+    private Label lblSDT;
+    @FXML
+    private Label lblBan;
+    @FXML
+    private TextField txtSoLuongKhach;
+    @FXML
+    private ComboBox<String> eventCombo;
 
-    //tìm kiếm
+    // tìm kiếm
 
     @FXML
     private DatePicker dpNgay;
-    @FXML private ComboBox<Integer> cbGio;
+    @FXML
+    private ComboBox<Integer> cbGio;
 
-    //nút
-    @FXML private Button btnXacNhan;
-    @FXML private Button btnHuyBan;
+    // nút
+    @FXML
+    private Button btnXacNhan;
+    @FXML
+    private Button btnHuyBan;
 
     // center
-    @FXML private VBox paneDanhSach;   // VBox danh sách bàn
-    @FXML private VBox paneMenu;       // VBox menu món
+    @FXML
+    private VBox paneDanhSach; // VBox danh sách bàn
+    @FXML
+    private VBox paneMenu; // VBox menu món
 
-    @FXML private Button back;
-    @FXML private TextField tfTimKiem;
-    @FXML private ComboBox<LoaiMon> comboDanhMuc;
-    @FXML private FlowPane flowMonAn;
+    @FXML
+    private Button back;
+    @FXML
+    private TextField tfTimKiem;
+    @FXML
+    private ComboBox<LoaiMon> comboDanhMuc;
+    @FXML
+    private FlowPane flowMonAn;
     private final LoaiMonDAO loaiMonDAO = new LoaiMonDAO();
 
     // BIẾN TOÀN CỤC
@@ -77,7 +95,7 @@ public class QLDatBanController {
     private final Map<String, VBox> menuCardCache = new HashMap<>();
     private final Map<String, Image> imageCache = new HashMap<>();
 
-    private final NumberFormat nf = NumberFormat.getInstance(new Locale("vi","VN"));
+    private final NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));
 
     @FXML
     public void initialize() {
@@ -88,7 +106,7 @@ public class QLDatBanController {
         ganSuKienChoNut();
         taiDanhSachDatTruoc();
         taiDanhSachDaNhan();
-        khoiTaoChonMon();   // load ds món, combo loại, search, cache card
+        khoiTaoChonMon(); // load ds món, combo loại, search, cache card
         resetForm();
         showDanhSachMode();
         if (back != null) {
@@ -99,7 +117,8 @@ public class QLDatBanController {
     }
 
     private void khoiTaoComboBox() {
-        if (eventCombo == null) return;
+        if (eventCombo == null)
+            return;
         List<SuKien> dsSuKien = SuKienDAO.getAll();
         eventCombo.getItems().clear();
         for (SuKien sk : dsSuKien) {
@@ -115,60 +134,59 @@ public class QLDatBanController {
         dpNgay.setOnAction(e -> locTheoNgayGio());
     }
 
-//    private void initComboGio() {
-//        cbGio.getItems().clear();
-//
-//        for (int h = 0; h <= 23; h++) {
-//            cbGio.getItems().add(h);
-//        }
-//
-//        cbGio.setPromptText("Giờ");
-//
-//        // Có thể bỏ nếu không muốn mặc định
-//        cbGio.getSelectionModel().selectFirst();
-//
-//        cbGio.setOnAction(e -> locTheoNgayGio());
-//    }
-private void initComboGio() {
-    cbGio.getItems().clear();
+    // private void initComboGio() {
+    // cbGio.getItems().clear();
+    //
+    // for (int h = 0; h <= 23; h++) {
+    // cbGio.getItems().add(h);
+    // }
+    //
+    // cbGio.setPromptText("Giờ");
+    //
+    // // Có thể bỏ nếu không muốn mặc định
+    // cbGio.getSelectionModel().selectFirst();
+    //
+    // cbGio.setOnAction(e -> locTheoNgayGio());
+    // }
+    private void initComboGio() {
+        cbGio.getItems().clear();
 
-    for (int h = 0; h <= 23; h++) {
-        cbGio.getItems().add(h);
+        for (int h = 0; h <= 23; h++) {
+            cbGio.getItems().add(h);
+        }
+
+        cbGio.setPromptText("Giờ");
+
+        // ===== Hiển thị: "Giờ: X" =====
+        cbGio.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item + " giờ");
+                }
+            }
+        });
+
+        cbGio.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("Giờ");
+                } else {
+                    setText(item + " giờ");
+                }
+            }
+        });
+
+        // Không chọn mặc định để cho phép lọc chỉ theo ngày
+        cbGio.getSelectionModel().clearSelection();
+
+        cbGio.setOnAction(e -> locTheoNgayGio());
     }
-
-    cbGio.setPromptText("Giờ");
-
-    // ===== Hiển thị: "Giờ: X" =====
-    cbGio.setCellFactory(param -> new ListCell<>() {
-        @Override
-        protected void updateItem(Integer item, boolean empty) {
-            super.updateItem(item, empty);
-            if (empty || item == null) {
-                setText(null);
-            } else {
-                setText(item + " giờ");
-            }
-        }
-    });
-
-    cbGio.setButtonCell(new ListCell<>() {
-        @Override
-        protected void updateItem(Integer item, boolean empty) {
-            super.updateItem(item, empty);
-            if (empty || item == null) {
-                setText("Giờ");
-            } else {
-                setText(item + " giờ");
-            }
-        }
-    });
-
-    // Không chọn mặc định để cho phép lọc chỉ theo ngày
-    cbGio.getSelectionModel().clearSelection();
-
-    cbGio.setOnAction(e -> locTheoNgayGio());
-}
-
 
     private void locTheoNgayGio() {
 
@@ -187,18 +205,18 @@ private void initComboGio() {
 
         if (gio == null) {
             // ===== CHỈ CHỌN NGÀY =====
-            start = ngay.atStartOfDay();          // 00:00:00
-            end   = ngay.atTime(23, 59, 59);      // 23:59:59
+            start = ngay.atStartOfDay(); // 00:00:00
+            end = ngay.atTime(23, 59, 59); // 23:59:59
         } else {
             // ===== CHỌN NGÀY + GIỜ =====
             start = ngay.atTime(gio, 0, 0);
-            end   = ngay.atTime(gio, 59, 59);
+            end = ngay.atTime(gio, 59, 59);
         }
 
         // ===== LỌC ĐẶT TRƯỚC =====
         danhSachDatTruoc.getChildren().clear();
         for (HoaDon hd : dsDatTruoc) {
-            LocalDateTime tg = hd.getTgLapHD();
+            LocalDateTime tg = hd.getTgCheckIn();
             if (tg != null && !tg.isBefore(start) && !tg.isAfter(end)) {
                 danhSachDatTruoc.getChildren().add(taoCardHoaDon(hd));
             }
@@ -215,10 +233,13 @@ private void initComboGio() {
     }
 
     private void ganSuKienChoNut() {
-        if (btnXacNhan != null) btnXacNhan.setOnAction(e -> xacNhanDatBan());
-        if (btnHuyBan != null) btnHuyBan.setOnAction(e -> huyDatBan());
+        if (btnXacNhan != null)
+            btnXacNhan.setOnAction(e -> xacNhanDatBan());
+        if (btnHuyBan != null)
+            btnHuyBan.setOnAction(e -> huyDatBan());
     }
-    //tải danh sách đặt trước / đã nhận
+
+    // tải danh sách đặt trước / đã nhận
     private void taiDanhSachDatTruoc() {
         try {
             // CHỈ LẤY TRANGTHAI = 0 TỪ DB
@@ -249,7 +270,8 @@ private void initComboGio() {
     }
 
     private void hienThiDanhSachDatTruoc() {
-        if (danhSachDatTruoc == null) return;
+        if (danhSachDatTruoc == null)
+            return;
         danhSachDatTruoc.getChildren().clear();
         if (dsDatTruoc.isEmpty()) {
             Label empty = new Label("Không có bàn nào đặt trước");
@@ -265,7 +287,8 @@ private void initComboGio() {
     }
 
     private void hienThiDanhSachDaNhan() {
-        if (danhSachDaNhan == null) return;
+        if (danhSachDaNhan == null)
+            return;
         danhSachDaNhan.getChildren().clear();
         if (dsDaNhan.isEmpty()) {
             Label empty = new Label("Không có bàn nào đã nhận");
@@ -286,7 +309,8 @@ private void initComboGio() {
         card.setPadding(new Insets(8));
         card.setCursor(Cursor.HAND);
         card.setPrefHeight(80);
-        card.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 8; -fx-background-radius: 8;");
+        card.setStyle(
+                "-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 8; -fx-background-radius: 8;");
 
         StackPane thumb = new StackPane();
         thumb.setStyle("-fx-background-radius: 8; -fx-overflow: hidden;");
@@ -329,9 +353,8 @@ private void initComboGio() {
         HBox.setHgrow(info, Priority.ALWAYS);
 
         Label lblTrangThai = new Label(hd.getTrangthai() == 0 ? "Đặt trước" : "Đã nhận");
-        lblTrangThai.setStyle(hd.getTrangthai() == 0 ?
-                "-fx-text-fill: #e74c3c; -fx-font-weight: bold;" :
-                "-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+        lblTrangThai.setStyle(hd.getTrangthai() == 0 ? "-fx-text-fill: #e74c3c; -fx-font-weight: bold;"
+                : "-fx-text-fill: #27ae60; -fx-font-weight: bold;");
 
         card.getChildren().addAll(thumb, info, lblTrangThai);
 
@@ -339,7 +362,8 @@ private void initComboGio() {
             clearSelectedStyles(danhSachDatTruoc);
             clearSelectedStyles(danhSachDaNhan);
 
-            card.setStyle("-fx-background-color: #007bff; -fx-border-color: #0056b3; -fx-border-radius: 8; -fx-background-radius: 8;");
+            card.setStyle(
+                    "-fx-background-color: #007bff; -fx-border-color: #0056b3; -fx-border-radius: 8; -fx-background-radius: 8;");
 
             for (javafx.scene.Node node : card.getChildren()) {
                 if (node instanceof Label) {
@@ -355,10 +379,12 @@ private void initComboGio() {
     }
 
     private void clearSelectedStyles(VBox box) {
-        if (box == null) return;
+        if (box == null)
+            return;
         for (javafx.scene.Node node : box.getChildren()) {
             if (node instanceof HBox) {
-                node.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 8; -fx-background-radius: 8;");
+                node.setStyle(
+                        "-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 8; -fx-background-radius: 8;");
                 for (javafx.scene.Node child : ((HBox) node).getChildren()) {
                     if (child instanceof Label) {
                         if (((Label) child).getText().contains("Đặt trước")) {
@@ -366,7 +392,8 @@ private void initComboGio() {
                         } else if (((Label) child).getText().contains("Đã nhận")) {
                             ((Label) child).setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
                         } else if (((Label) child).getText().startsWith("HD")) {
-                            ((Label) child).setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #333;");
+                            ((Label) child)
+                                    .setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #333;");
                         } else {
                             ((Label) child).setStyle("-fx-text-fill: #666; -fx-font-size: 12px;");
                         }
@@ -377,16 +404,22 @@ private void initComboGio() {
     }
 
     private void hienThiThongTinChiTiet(HoaDon hd) {
-        if (hd == null) return;
+        if (hd == null)
+            return;
         System.out.println("Hiển thị chi tiết hóa đơn: " + hd.getMaHD());
-        if (lblMaHoaDon != null) lblMaHoaDon.setText(hd.getMaHD());
+        if (lblMaHoaDon != null)
+            lblMaHoaDon.setText(hd.getMaHD());
         KhachHang kh = hd.getKhachHang();
         if (kh != null) {
-            if (lblHoTen != null) lblHoTen.setText(kh.getTenKhachHang());
-            if (lblSDT != null) lblSDT.setText(kh.getSdt());
+            if (lblHoTen != null)
+                lblHoTen.setText(kh.getTenKhachHang());
+            if (lblSDT != null)
+                lblSDT.setText(kh.getSdt());
         } else {
-            if (lblHoTen != null) lblHoTen.setText("Chưa có thông tin");
-            if (lblSDT != null) lblSDT.setText("Chưa có thông tin");
+            if (lblHoTen != null)
+                lblHoTen.setText("Chưa có thông tin");
+            if (lblSDT != null)
+                lblSDT.setText("Chưa có thông tin");
             System.out.println("Không có thông tin khách hàng");
         }
         if (hd.getBan() != null && lblBan != null) {
@@ -413,7 +446,8 @@ private void initComboGio() {
         soLuongGocMap.clear();
         vboxChiTietDonHang.getChildren().clear();
 
-        if (maHD == null || maHD.trim().isEmpty()) return;
+        if (maHD == null || maHD.trim().isEmpty())
+            return;
 
         try {
             List<ChiTietHoaDon> dsChiTiet = chiTietHDDAO.getByMaHD(maHD);
@@ -472,8 +506,10 @@ private void initComboGio() {
             boolean allOk = true;
             for (ChiTietHoaDon ct : chiTietHoaDonData) {
                 boolean ok = chiTietHDDAO.update(ct);
-                if (!ok) ok = chiTietHDDAO.insert(ct);
-                if (!ok) allOk = false;
+                if (!ok)
+                    ok = chiTietHDDAO.insert(ct);
+                if (!ok)
+                    allOk = false;
             }
             if (allOk) {
                 AlertCus.show("Thông Báo", "Cập nhật chi tiết hóa đơn thành công");
@@ -513,18 +549,22 @@ private void initComboGio() {
 
         long diffMinutes = java.time.Duration.between(now, tgCheckin).toMinutes(); // còn bao nhiêu phút
         int phanTram;
-        if (diffMinutes < 12 * 60L) phanTram = 0;          // <12h: mất
-        else if (diffMinutes < 18 * 60L) phanTram = 50;    // <18h: 50%
-        else if (diffMinutes < 24 * 60L) phanTram = 70;    // <24h: 70%
-        else phanTram = 100;                               // >=24h: 100%
+        if (diffMinutes < 12 * 60L)
+            phanTram = 0; // <12h: mất
+        else if (diffMinutes < 18 * 60L)
+            phanTram = 50; // <18h: 50%
+        else if (diffMinutes < 24 * 60L)
+            phanTram = 70; // <24h: 70%
+        else
+            phanTram = 100; // >=24h: 100%
         long diffHoursShow = diffMinutes / 60;
         boolean answer = ConfirmCus.show(
                 "Xác nhận hủy đơn",
                 "Bạn có chắc muốn hủy đơn đặt bàn này?\n" +
                         "Còn trước tgCheckin: " + diffHoursShow + " giờ\n" +
-                        "Voucher quy đổi: " + phanTram + "% (1 lần dùng)"
-        );
-        if (!answer) return;
+                        "Voucher quy đổi: " + phanTram + "% (1 lần dùng)");
+        if (!answer)
+            return;
         try {
             hoaDonSelected.setTrangthai(3);
             boolean ok = HoaDonDAO.update(hoaDonSelected);
@@ -542,8 +582,7 @@ private void initComboGio() {
                 boolean okV = KhuyenMaiDAO.insertVoucherHuyDatBan(
                         hoaDonSelected.getMaHD(),
                         tienVoucher,
-                        LocalDate.now().plusDays(30)
-                );
+                        LocalDate.now().plusDays(30));
 
                 if (!okV) {
                     AlertCus.show("Thông Báo",
@@ -586,8 +625,9 @@ private void initComboGio() {
         menuCardCache.clear();
         if (dsMonToanBo != null) {
             for (Mon m : dsMonToanBo) {
-                if (m == null || m.getMaMon() == null) continue;
-                VBox card = taoCardMon(m);   // tạo card 1 lần
+                if (m == null || m.getMaMon() == null)
+                    continue;
+                VBox card = taoCardMon(m); // tạo card 1 lần
                 menuCardCache.put(m.getMaMon(), card);
             }
         }
@@ -600,7 +640,8 @@ private void initComboGio() {
     }
 
     private void hienThiDanhSachMon(List<Mon> danhSachMon) {
-        if (foodList == null) return;
+        if (foodList == null)
+            return;
         foodList.getChildren().clear();
 
         if (danhSachMon == null || danhSachMon.isEmpty()) {
@@ -632,7 +673,8 @@ private void initComboGio() {
         iv.setPreserveRatio(true);
         try {
             Image img = getCachedImage("/IMG/food/restaurant.png");
-            if (img != null) iv.setImage(img);
+            if (img != null)
+                iv.setImage(img);
         } catch (Exception ex) {
             // bỏ qua nếu không load được ảnh
         }
@@ -659,7 +701,8 @@ private void initComboGio() {
     }
 
     private void themMonVaoDon(Mon m) {
-        if (m == null) return;
+        if (m == null)
+            return;
         if (hoaDonSelected == null) {
             AlertCus.show("Thông Báo", "Vui lòng chọn hóa đơn trước khi thêm món.");
             return;
@@ -706,18 +749,25 @@ private void initComboGio() {
             }
         }
         double tong = 0;
-        for (ChiTietHoaDon ct : chiTietHoaDonData) tong += ct.getThanhTien();
+        for (ChiTietHoaDon ct : chiTietHoaDonData)
+            tong += ct.getThanhTien();
         System.out.println("Tổng đơn hàng hiện tại: " + nf.format(tong) + " VNĐ");
     }
 
     private void resetForm() {
         hoaDonSelected = null;
-        if (lblMaHoaDon != null) lblMaHoaDon.setText("");
-        if (lblHoTen != null) lblHoTen.setText("");
-        if (lblSDT != null) lblSDT.setText("");
-        if (lblBan != null) lblBan.setText("");
-        if (eventCombo != null) eventCombo.setValue(null);
-        if (txtSoLuongKhach != null) txtSoLuongKhach.clear();
+        if (lblMaHoaDon != null)
+            lblMaHoaDon.setText("");
+        if (lblHoTen != null)
+            lblHoTen.setText("");
+        if (lblSDT != null)
+            lblSDT.setText("");
+        if (lblBan != null)
+            lblBan.setText("");
+        if (eventCombo != null)
+            eventCombo.setValue(null);
+        if (txtSoLuongKhach != null)
+            txtSoLuongKhach.clear();
         chiTietHoaDonData.clear();
         vboxChiTietDonHang.getChildren().clear();
         clearSelectedStyles(danhSachDatTruoc);
@@ -787,8 +837,10 @@ private void initComboGio() {
     }
 
     private void giamMotSoLuong(ChiTietHoaDon ct) {
-        if (ct == null) return;
-        if (ct.getMon() == null) return;
+        if (ct == null)
+            return;
+        if (ct.getMon() == null)
+            return;
 
         String maMon = ct.getMon().getMaMon();
         int current = ct.getSoLuong();
@@ -821,7 +873,8 @@ private void initComboGio() {
     }
 
     private void xoaToanBoMon(ChiTietHoaDon ct) {
-        if (ct == null || ct.getMon() == null) return;
+        if (ct == null || ct.getMon() == null)
+            return;
 
         String maMon = ct.getMon().getMaMon();
         int soLuongGoc = 0;
@@ -861,7 +914,8 @@ private void initComboGio() {
     // ====== MENU CENTER: COMBO LOẠI + SEARCH + CARD MÓN ======
 
     private void loadComboDanhMuc() {
-        if (comboDanhMuc == null) return;
+        if (comboDanhMuc == null)
+            return;
 
         comboDanhMuc.getItems().clear();
 
@@ -904,7 +958,8 @@ private void initComboGio() {
     }
 
     private void locMonTheoTenVaLoai() {
-        if (flowMonAn == null) return;
+        if (flowMonAn == null)
+            return;
 
         String keyword = (tfTimKiem != null)
                 ? tfTimKiem.getText().trim().toLowerCase()
@@ -916,7 +971,8 @@ private void initComboGio() {
 
         List<Mon> ketQua = new ArrayList<>();
         for (Mon m : dsMonToanBo) {
-            if (m == null) continue;
+            if (m == null)
+                continue;
 
             boolean matchText = keyword.isEmpty()
                     || (m.getTenMon() != null && m.getTenMon().toLowerCase().contains(keyword));
@@ -950,9 +1006,11 @@ private void initComboGio() {
     }
 
     private Image getCachedImage(String path) {
-        if (path == null) return null;
+        if (path == null)
+            return null;
         Image img = imageCache.get(path);
-        if (img != null) return img;
+        if (img != null)
+            return img;
 
         try {
             img = new Image(getClass().getResourceAsStream(path));
